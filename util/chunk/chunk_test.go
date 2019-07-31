@@ -78,7 +78,7 @@ func (s *testChunkSuite) TestChunk(c *check.C) {
 		chk2.AppendRow(row)
 	}
 	for i := 0; i < numCols; i++ {
-		col2, col1 := chk2.columns[i], chk.columns[i]
+		col2, col1 := chk2.Columns[i], chk.Columns[i]
 		col2.elemBuf, col1.elemBuf = nil, nil
 		c.Assert(col2, check.DeepEquals, col1)
 	}
@@ -157,28 +157,28 @@ func (s *testChunkSuite) TestAppend(c *check.C) {
 	dst.Append(dst, 2, 6)
 	dst.Append(dst, 6, 6)
 
-	c.Assert(len(dst.columns), check.Equals, 3)
+	c.Assert(len(dst.Columns), check.Equals, 3)
 
-	c.Assert(dst.columns[0].length, check.Equals, 12)
-	c.Assert(dst.columns[0].nullCount, check.Equals, 6)
-	c.Assert(string(dst.columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
-	c.Assert(len(dst.columns[0].offsets), check.Equals, 0)
-	c.Assert(len(dst.columns[0].data), check.Equals, 4*12)
-	c.Assert(len(dst.columns[0].elemBuf), check.Equals, 4)
+	c.Assert(dst.Columns[0].Length, check.Equals, 12)
+	c.Assert(dst.Columns[0].nullCount, check.Equals, 6)
+	c.Assert(string(dst.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(len(dst.Columns[0].offsets), check.Equals, 0)
+	c.Assert(len(dst.Columns[0].Data), check.Equals, 4*12)
+	c.Assert(len(dst.Columns[0].elemBuf), check.Equals, 4)
 
-	c.Assert(dst.columns[1].length, check.Equals, 12)
-	c.Assert(dst.columns[1].nullCount, check.Equals, 6)
-	c.Assert(string(dst.columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
-	c.Assert(fmt.Sprintf("%v", dst.columns[1].offsets), check.Equals, fmt.Sprintf("%v", []int64{0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 18, 18}))
-	c.Assert(string(dst.columns[1].data), check.Equals, "abcabcabcabcabcabc")
-	c.Assert(len(dst.columns[1].elemBuf), check.Equals, 0)
+	c.Assert(dst.Columns[1].Length, check.Equals, 12)
+	c.Assert(dst.Columns[1].nullCount, check.Equals, 6)
+	c.Assert(string(dst.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(fmt.Sprintf("%v", dst.Columns[1].offsets), check.Equals, fmt.Sprintf("%v", []int64{0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 18, 18}))
+	c.Assert(string(dst.Columns[1].Data), check.Equals, "abcabcabcabcabcabc")
+	c.Assert(len(dst.Columns[1].elemBuf), check.Equals, 0)
 
-	c.Assert(dst.columns[2].length, check.Equals, 12)
-	c.Assert(dst.columns[2].nullCount, check.Equals, 6)
-	c.Assert(string(dst.columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
-	c.Assert(len(dst.columns[2].offsets), check.Equals, 13)
-	c.Assert(len(dst.columns[2].data), check.Equals, 150)
-	c.Assert(len(dst.columns[2].elemBuf), check.Equals, 0)
+	c.Assert(dst.Columns[2].Length, check.Equals, 12)
+	c.Assert(dst.Columns[2].nullCount, check.Equals, 6)
+	c.Assert(string(dst.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(len(dst.Columns[2].offsets), check.Equals, 13)
+	c.Assert(len(dst.Columns[2].Data), check.Equals, 150)
+	c.Assert(len(dst.Columns[2].elemBuf), check.Equals, 0)
 	for i := 0; i < 12; i += 2 {
 		jsonElem := dst.GetRow(i).GetJSON(2)
 		cmpRes := json.CompareBinary(jsonElem, jsonObj)
@@ -210,28 +210,28 @@ func (s *testChunkSuite) TestTruncateTo(c *check.C) {
 	src.TruncateTo(16)
 	src.TruncateTo(14)
 	src.TruncateTo(12)
-	c.Assert(len(src.columns), check.Equals, 3)
+	c.Assert(len(src.Columns), check.Equals, 3)
 
-	c.Assert(src.columns[0].length, check.Equals, 12)
-	c.Assert(src.columns[0].nullCount, check.Equals, 6)
-	c.Assert(string(src.columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
-	c.Assert(len(src.columns[0].offsets), check.Equals, 0)
-	c.Assert(len(src.columns[0].data), check.Equals, 4*12)
-	c.Assert(len(src.columns[0].elemBuf), check.Equals, 4)
+	c.Assert(src.Columns[0].Length, check.Equals, 12)
+	c.Assert(src.Columns[0].nullCount, check.Equals, 6)
+	c.Assert(string(src.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(len(src.Columns[0].offsets), check.Equals, 0)
+	c.Assert(len(src.Columns[0].Data), check.Equals, 4*12)
+	c.Assert(len(src.Columns[0].elemBuf), check.Equals, 4)
 
-	c.Assert(src.columns[1].length, check.Equals, 12)
-	c.Assert(src.columns[1].nullCount, check.Equals, 6)
-	c.Assert(string(src.columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
-	c.Assert(fmt.Sprintf("%v", src.columns[1].offsets), check.Equals, fmt.Sprintf("%v", []int64{0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 18, 18}))
-	c.Assert(string(src.columns[1].data), check.Equals, "abcabcabcabcabcabc")
-	c.Assert(len(src.columns[1].elemBuf), check.Equals, 0)
+	c.Assert(src.Columns[1].Length, check.Equals, 12)
+	c.Assert(src.Columns[1].nullCount, check.Equals, 6)
+	c.Assert(string(src.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(fmt.Sprintf("%v", src.Columns[1].offsets), check.Equals, fmt.Sprintf("%v", []int64{0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 18, 18}))
+	c.Assert(string(src.Columns[1].Data), check.Equals, "abcabcabcabcabcabc")
+	c.Assert(len(src.Columns[1].elemBuf), check.Equals, 0)
 
-	c.Assert(src.columns[2].length, check.Equals, 12)
-	c.Assert(src.columns[2].nullCount, check.Equals, 6)
-	c.Assert(string(src.columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
-	c.Assert(len(src.columns[2].offsets), check.Equals, 13)
-	c.Assert(len(src.columns[2].data), check.Equals, 150)
-	c.Assert(len(src.columns[2].elemBuf), check.Equals, 0)
+	c.Assert(src.Columns[2].Length, check.Equals, 12)
+	c.Assert(src.Columns[2].nullCount, check.Equals, 6)
+	c.Assert(string(src.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(len(src.Columns[2].offsets), check.Equals, 13)
+	c.Assert(len(src.Columns[2].Data), check.Equals, 150)
+	c.Assert(len(src.Columns[2].elemBuf), check.Equals, 0)
 	for i := 0; i < 12; i += 2 {
 		row := src.GetRow(i)
 		jsonElem := row.GetJSON(2)
@@ -305,9 +305,9 @@ func newChunk(elemLen ...int) *Chunk {
 	chk := &Chunk{}
 	for _, l := range elemLen {
 		if l > 0 {
-			chk.columns = append(chk.columns, newFixedLenColumn(l, 0))
+			chk.Columns = append(chk.Columns, newFixedLenColumn(l, 0))
 		} else {
-			chk.columns = append(chk.columns, newVarLenColumn(0, nil))
+			chk.Columns = append(chk.Columns, newVarLenColumn(0, nil))
 		}
 	}
 	return chk
@@ -317,9 +317,9 @@ func newChunkWithInitCap(cap int, elemLen ...int) *Chunk {
 	chk := &Chunk{}
 	for _, l := range elemLen {
 		if l > 0 {
-			chk.columns = append(chk.columns, newFixedLenColumn(l, cap))
+			chk.Columns = append(chk.Columns, newFixedLenColumn(l, cap))
 		} else {
-			chk.columns = append(chk.columns, newVarLenColumn(cap, nil))
+			chk.Columns = append(chk.Columns, newVarLenColumn(cap, nil))
 		}
 	}
 	return chk
@@ -546,7 +546,7 @@ func (s *testChunkSuite) TestChunkMemoryUsage(c *check.C) {
 
 	expectedUsage := 0
 	for i := range colUsage {
-		expectedUsage += colUsage[i] + int(unsafe.Sizeof(*chk.columns[i]))
+		expectedUsage += colUsage[i] + int(unsafe.Sizeof(*chk.Columns[i]))
 	}
 	memUsage := chk.MemoryUsage()
 	c.Assert(memUsage, check.Equals, int64(expectedUsage))
@@ -572,10 +572,10 @@ func (s *testChunkSuite) TestChunkMemoryUsage(c *check.C) {
 	chk.AppendDuration(4, durationObj)
 
 	memUsage = chk.MemoryUsage()
-	colUsage[1] = initCap>>3 + (initCap+1)*4 + cap(chk.columns[1].data) + 0
+	colUsage[1] = initCap>>3 + (initCap+1)*4 + cap(chk.Columns[1].Data) + 0
 	expectedUsage = 0
 	for i := range colUsage {
-		expectedUsage += colUsage[i] + int(unsafe.Sizeof(*chk.columns[i]))
+		expectedUsage += colUsage[i] + int(unsafe.Sizeof(*chk.Columns[i]))
 	}
 	c.Assert(memUsage, check.Equals, int64(expectedUsage))
 }
@@ -598,13 +598,13 @@ func (s *testChunkSuite) TestSwapColumn(c *check.C) {
 	chk2.MakeRef(0, 1)
 	chk2.AppendFloat64(2, 3)
 
-	c.Assert(chk1.columns[0] == chk1.columns[1], check.IsTrue)
-	c.Assert(chk2.columns[0] == chk2.columns[1], check.IsTrue)
+	c.Assert(chk1.Columns[0] == chk1.Columns[1], check.IsTrue)
+	c.Assert(chk2.Columns[0] == chk2.Columns[1], check.IsTrue)
 
 	checkRef := func() {
-		c.Assert(chk1.columns[0] == chk1.columns[1], check.IsTrue)
-		c.Assert(chk1.columns[0] == chk2.columns[0], check.IsFalse)
-		c.Assert(chk2.columns[0] == chk2.columns[1], check.IsTrue)
+		c.Assert(chk1.Columns[0] == chk1.Columns[1], check.IsTrue)
+		c.Assert(chk1.Columns[0] == chk2.Columns[0], check.IsFalse)
+		c.Assert(chk2.Columns[0] == chk2.Columns[1], check.IsTrue)
 	}
 
 	chk1.SwapColumn(0, chk2, 0)
@@ -648,16 +648,16 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 		c.Assert(destChk.NumRows(), check.Equals, i)
 		destChk.preAlloc(srcChk.GetRow(i))
 	}
-	for i, srcCol := range srcChk.columns {
-		destCol := destChk.columns[i]
+	for i, srcCol := range srcChk.Columns {
+		destCol := destChk.Columns[i]
 		c.Assert(len(srcCol.elemBuf), check.Equals, len(destCol.elemBuf))
-		c.Assert(len(srcCol.data), check.Equals, len(destCol.data))
+		c.Assert(len(srcCol.Data), check.Equals, len(destCol.Data))
 		c.Assert(len(srcCol.offsets), check.Equals, len(destCol.offsets))
 		c.Assert(len(srcCol.nullBitmap), check.Equals, len(destCol.nullBitmap))
-		c.Assert(srcCol.length, check.Equals, destCol.length)
+		c.Assert(srcCol.Length, check.Equals, destCol.Length)
 		c.Assert(srcCol.nullCount, check.Equals, destCol.nullCount)
 
-		for _, val := range destCol.data {
+		for _, val := range destCol.Data {
 			c.Assert(val == 0, check.IsTrue)
 		}
 		for j, val := range srcCol.offsets {
@@ -675,11 +675,11 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 	for i := srcChk.NumRows() - 1; i >= 0; i-- {
 		destChk.insert(i, srcChk.GetRow(i))
 	}
-	for i, srcCol := range srcChk.columns {
-		destCol := destChk.columns[i]
+	for i, srcCol := range srcChk.Columns {
+		destCol := destChk.Columns[i]
 
-		for j, val := range srcCol.data {
-			c.Assert(val, check.Equals, destCol.data[j])
+		for j, val := range srcCol.Data {
+			c.Assert(val, check.Equals, destCol.Data[j])
 		}
 		for j, val := range srcCol.offsets {
 			c.Assert(val, check.Equals, destCol.offsets[j])
@@ -709,11 +709,11 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 	}
 	startWg.Done()
 	endWg.Wait()
-	for i, srcCol := range srcChk.columns {
-		destCol := destChk.columns[i]
+	for i, srcCol := range srcChk.Columns {
+		destCol := destChk.Columns[i]
 
-		for j, val := range srcCol.data {
-			c.Assert(val, check.Equals, destCol.data[j])
+		for j, val := range srcCol.Data {
+			c.Assert(val, check.Equals, destCol.Data[j])
 		}
 		for j, val := range srcCol.offsets {
 			c.Assert(val, check.Equals, destCol.offsets[j])
@@ -758,8 +758,8 @@ func (s *testChunkSuite) TestMakeRefTo(c *check.C) {
 	chk2.MakeRefTo(0, chk1, 1)
 	chk2.MakeRefTo(1, chk1, 0)
 
-	c.Assert(chk2.columns[0] == chk1.columns[1], check.IsTrue)
-	c.Assert(chk2.columns[1] == chk1.columns[0], check.IsTrue)
+	c.Assert(chk2.Columns[0] == chk1.Columns[1], check.IsTrue)
+	c.Assert(chk2.Columns[1] == chk1.Columns[0], check.IsTrue)
 }
 
 func BenchmarkAppendInt(b *testing.B) {

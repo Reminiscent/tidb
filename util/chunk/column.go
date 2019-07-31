@@ -37,15 +37,15 @@ func (c *Column) AppendMyDecimal(dec *types.MyDecimal) {
 func (c *Column) appendNameValue(name string, val uint64) {
 	var buf [8]byte
 	*(*uint64)(unsafe.Pointer(&buf[0])) = val
-	c.data = append(c.data, buf[:]...)
-	c.data = append(c.data, name...)
+	c.Data = append(c.Data, buf[:]...)
+	c.Data = append(c.Data, name...)
 	c.finishAppendVar()
 }
 
 // AppendJSON appends a BinaryJSON value into this Column.
 func (c *Column) AppendJSON(j json.BinaryJSON) {
-	c.data = append(c.data, j.TypeCode)
-	c.data = append(c.data, j.Value...)
+	c.Data = append(c.Data, j.TypeCode)
+	c.Data = append(c.Data, j.Value...)
 	c.finishAppendVar()
 }
 
@@ -57,11 +57,11 @@ func (c *Column) AppendSet(set types.Set) {
 // Column stores one column of data in Apache Arrow format.
 // See https://arrow.apache.org/docs/memory_layout.html
 type Column struct {
-	length     int
+	Length     int
 	nullCount  int
 	nullBitmap []byte
 	offsets    []int64
-	data       []byte
+	Data       []byte
 	elemBuf    []byte
 }
 
@@ -80,14 +80,14 @@ func (c *Column) isFixed() bool {
 
 // Reset resets this Column.
 func (c *Column) Reset() {
-	c.length = 0
+	c.Length = 0
 	c.nullCount = 0
 	c.nullBitmap = c.nullBitmap[:0]
 	if len(c.offsets) > 0 {
 		// The first offset is always 0, it makes slicing the data easier, we need to keep it.
 		c.offsets = c.offsets[:1]
 	}
-	c.data = c.data[:0]
+	c.Data = c.Data[:0]
 }
 
 // IsNull returns if this row is null.
@@ -97,21 +97,21 @@ func (c *Column) IsNull(rowIdx int) bool {
 }
 
 func (c *Column) copyConstruct() *Column {
-	newCol := &Column{length: c.length, nullCount: c.nullCount}
+	newCol := &Column{Length: c.Length, nullCount: c.nullCount}
 	newCol.nullBitmap = append(newCol.nullBitmap, c.nullBitmap...)
 	newCol.offsets = append(newCol.offsets, c.offsets...)
-	newCol.data = append(newCol.data, c.data...)
+	newCol.Data = append(newCol.Data, c.Data...)
 	newCol.elemBuf = append(newCol.elemBuf, c.elemBuf...)
 	return newCol
 }
 
 func (c *Column) appendNullBitmap(notNull bool) {
-	idx := c.length >> 3
+	idx := c.Length >> 3
 	if idx >= len(c.nullBitmap) {
 		c.nullBitmap = append(c.nullBitmap, 0)
 	}
 	if notNull {
-		pos := uint(c.length) & 7
+		pos := uint(c.Length) & 7
 		c.nullBitmap[idx] |= byte(1 << pos)
 	} else {
 		c.nullCount++
@@ -122,7 +122,7 @@ func (c *Column) appendNullBitmap(notNull bool) {
 // notNull means not null.
 // num means the number of bits that should be appended.
 func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
-	numNewBytes := ((c.length + num + 7) >> 3) - len(c.nullBitmap)
+	numNewBytes := ((c.Length + num + 7) >> 3) - len(c.nullBitmap)
 	b := byte(0)
 	if notNull {
 		b = 0xff
@@ -135,11 +135,11 @@ func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
 		return
 	}
 	// 1. Set all the remaining bits in the last slot of old c.numBitMap to 1.
-	numRemainingBits := uint(c.length % 8)
+	numRemainingBits := uint(c.Length % 8)
 	bitMask := byte(^((1 << numRemainingBits) - 1))
-	c.nullBitmap[c.length/8] |= bitMask
+	c.nullBitmap[c.Length/8] |= bitMask
 	// 2. Set all the redundant bits in the last slot of new c.numBitMap to 0.
-	numRedundantBits := uint(len(c.nullBitmap)*8 - c.length - num)
+	numRedundantBits := uint(len(c.nullBitmap)*8 - c.Length - num)
 	bitMask = byte(1<<(8-numRedundantBits)) - 1
 	c.nullBitmap[len(c.nullBitmap)-1] &= bitMask
 }
@@ -148,17 +148,17 @@ func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
 func (c *Column) AppendNull() {
 	c.appendNullBitmap(false)
 	if c.isFixed() {
-		c.data = append(c.data, c.elemBuf...)
+		c.Data = append(c.Data, c.elemBuf...)
 	} else {
-		c.offsets = append(c.offsets, c.offsets[c.length])
+		c.offsets = append(c.offsets, c.offsets[c.Length])
 	}
-	c.length++
+	c.Length++
 }
 
 func (c *Column) finishAppendFixed() {
-	c.data = append(c.data, c.elemBuf...)
+	c.Data = append(c.Data, c.elemBuf...)
 	c.appendNullBitmap(true)
-	c.length++
+	c.Length++
 }
 
 // AppendInt64 appends an int64 value into this Column.
@@ -187,19 +187,19 @@ func (c *Column) AppendFloat64(f float64) {
 
 func (c *Column) finishAppendVar() {
 	c.appendNullBitmap(true)
-	c.offsets = append(c.offsets, int64(len(c.data)))
-	c.length++
+	c.offsets = append(c.offsets, int64(len(c.Data)))
+	c.Length++
 }
 
 // AppendString appends a string value into this Column.
 func (c *Column) AppendString(str string) {
-	c.data = append(c.data, str...)
+	c.Data = append(c.Data, str...)
 	c.finishAppendVar()
 }
 
 // AppendBytes appends a byte slice into this Column.
 func (c *Column) AppendBytes(b []byte) {
-	c.data = append(c.data, b...)
+	c.Data = append(c.Data, b...)
 	c.finishAppendVar()
 }
 
@@ -223,9 +223,9 @@ const (
 )
 
 func (c *Column) castSliceHeader(header *reflect.SliceHeader, typeSize int) {
-	header.Data = uintptr(unsafe.Pointer(&c.data[0]))
-	header.Len = c.length
-	header.Cap = cap(c.data) / typeSize
+	header.Data = uintptr(unsafe.Pointer(&c.Data[0]))
+	header.Len = c.Length
+	header.Cap = cap(c.Data) / typeSize
 }
 
 // Int64s returns an int64 slice stored in this Column.
@@ -265,43 +265,43 @@ func (c *Column) Decimals() []types.MyDecimal {
 
 // GetInt64 returns the int64 in the specific row.
 func (c *Column) GetInt64(rowID int) int64 {
-	return *(*int64)(unsafe.Pointer(&c.data[rowID*8]))
+	return *(*int64)(unsafe.Pointer(&c.Data[rowID*8]))
 }
 
 // GetUint64 returns the uint64 in the specific row.
 func (c *Column) GetUint64(rowID int) uint64 {
-	return *(*uint64)(unsafe.Pointer(&c.data[rowID*8]))
+	return *(*uint64)(unsafe.Pointer(&c.Data[rowID*8]))
 }
 
 // GetFloat32 returns the float32 in the specific row.
 func (c *Column) GetFloat32(rowID int) float32 {
-	return *(*float32)(unsafe.Pointer(&c.data[rowID*4]))
+	return *(*float32)(unsafe.Pointer(&c.Data[rowID*4]))
 }
 
 // GetFloat64 returns the float64 in the specific row.
 func (c *Column) GetFloat64(rowID int) float64 {
-	return *(*float64)(unsafe.Pointer(&c.data[rowID*8]))
+	return *(*float64)(unsafe.Pointer(&c.Data[rowID*8]))
 }
 
 // GetDecimal returns the decimal in the specific row.
 func (c *Column) GetDecimal(rowID int) *types.MyDecimal {
-	return (*types.MyDecimal)(unsafe.Pointer(&c.data[rowID*types.MyDecimalStructSize]))
+	return (*types.MyDecimal)(unsafe.Pointer(&c.Data[rowID*types.MyDecimalStructSize]))
 }
 
 // GetString returns the string in the specific row.
 func (c *Column) GetString(rowID int) string {
-	return string(hack.String(c.data[c.offsets[rowID]:c.offsets[rowID+1]]))
+	return string(hack.String(c.Data[c.offsets[rowID]:c.offsets[rowID+1]]))
 }
 
 // GetJSON returns the JSON in the specific row.
 func (c *Column) GetJSON(rowID int) json.BinaryJSON {
 	start := c.offsets[rowID]
-	return json.BinaryJSON{TypeCode: c.data[start], Value: c.data[start+1 : c.offsets[rowID+1]]}
+	return json.BinaryJSON{TypeCode: c.Data[start], Value: c.Data[start+1 : c.offsets[rowID+1]]}
 }
 
 // GetBytes returns the byte slice in the specific row.
 func (c *Column) GetBytes(rowID int) []byte {
-	return c.data[c.offsets[rowID]:c.offsets[rowID+1]]
+	return c.Data[c.offsets[rowID]:c.offsets[rowID+1]]
 }
 
 // GetEnum returns the Enum in the specific row.
@@ -318,12 +318,12 @@ func (c *Column) GetSet(rowID int) types.Set {
 
 // GetTime returns the Time in the specific row.
 func (c *Column) GetTime(rowID int) types.Time {
-	return readTime(c.data[rowID*16:])
+	return readTime(c.Data[rowID*16:])
 }
 
 // GetDuration returns the Duration in the specific row.
 func (c *Column) GetDuration(rowID int, fillFsp int) types.Duration {
-	dur := *(*int64)(unsafe.Pointer(&c.data[rowID*8]))
+	dur := *(*int64)(unsafe.Pointer(&c.Data[rowID*8]))
 	return types.Duration{Duration: time.Duration(dur), Fsp: fillFsp}
 }
 
@@ -332,7 +332,7 @@ func (c *Column) getNameValue(rowID int) (string, uint64) {
 	if start == end {
 		return "", 0
 	}
-	return string(hack.String(c.data[start+8 : end])), *(*uint64)(unsafe.Pointer(&c.data[start]))
+	return string(hack.String(c.Data[start+8 : end])), *(*uint64)(unsafe.Pointer(&c.Data[start]))
 }
 
 // reconstruct reconstructs this Column by removing all filtered rows in it according to sel.
@@ -350,11 +350,11 @@ func (c *Column) reconstruct(sel []int) {
 				nullCnt++
 				c.nullBitmap[idx] &= ^byte(1 << pos)
 			} else {
-				copy(c.data[dst*elemLen:dst*elemLen+elemLen], c.data[src*elemLen:src*elemLen+elemLen])
+				copy(c.Data[dst*elemLen:dst*elemLen+elemLen], c.Data[src*elemLen:src*elemLen+elemLen])
 				c.nullBitmap[idx] |= byte(1 << pos)
 			}
 		}
-		c.data = c.data[:len(sel)*elemLen]
+		c.Data = c.Data[:len(sel)*elemLen]
 	} else {
 		tail := 0
 		for dst, src := range sel {
@@ -366,16 +366,16 @@ func (c *Column) reconstruct(sel []int) {
 				c.offsets[dst+1] = int64(tail)
 			} else {
 				start, end := c.offsets[src], c.offsets[src+1]
-				copy(c.data[tail:], c.data[start:end])
+				copy(c.Data[tail:], c.Data[start:end])
 				tail += int(end - start)
 				c.offsets[dst+1] = int64(tail)
 				c.nullBitmap[idx] |= byte(1 << pos)
 			}
 		}
-		c.data = c.data[:tail]
+		c.Data = c.Data[:tail]
 		c.offsets = c.offsets[:len(sel)+1]
 	}
-	c.length = len(sel)
+	c.Length = len(sel)
 	c.nullCount = nullCnt
 
 	// clean nullBitmap

@@ -14,6 +14,7 @@
 package expression
 
 import (
+	"github.com/pingcap/tidb/util/vector"
 	"strconv"
 
 	"github.com/pingcap/parser/ast"
@@ -64,6 +65,16 @@ func VectorizedExecute(ctx sessionctx.Context, exprs []Expression, iterator *chu
 	return nil
 }
 
+func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *chunk.Chunk, output *chunk.Chunk) error { // todo:new
+	for colID, expr := range exprs {
+		err := VectorizedEvalOneColumn(ctx, expr, input, output, colID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func evalOneColumn(ctx sessionctx.Context, expr Expression, iterator *chunk.Iterator4Chunk, output *chunk.Chunk, colID int) (err error) {
 	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
 	case types.ETInt:
@@ -94,6 +105,15 @@ func evalOneColumn(ctx sessionctx.Context, expr Expression, iterator *chunk.Iter
 		for row := iterator.Begin(); err == nil && row != iterator.End(); row = iterator.Next() {
 			err = executeToString(ctx, expr, fieldType, row, output, colID)
 		}
+	}
+	return err
+}
+
+func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) { // todo:new
+	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
+	case types.ETInt:
+		// the value is right
+		err = VectorizedExecuteToInt(ctx, expr, fieldType, input, output, colID)
 	}
 	return err
 }
@@ -136,6 +156,18 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 		return nil
 	}
 	output.AppendInt64(colID, res)
+	return nil
+}
+
+func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error { // todo:new
+
+	length := input.Columns[0].Length
+	vec := vector.NewVecInt64(length)
+	err := expr.VectorizedEvalInt(ctx, input, vector.Vector(vec))
+	if err != nil {
+		return err
+	}
+	output.AppendVectorInt64(colID, vec)
 	return nil
 }
 

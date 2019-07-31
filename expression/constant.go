@@ -15,6 +15,8 @@ package expression
 
 import (
 	"fmt"
+	"github.com/pingcap/tidb/util/vector"
+	"unsafe"
 
 	"github.com/pingcap/parser/mysql"
 	"github.com/pingcap/parser/terror"
@@ -110,6 +112,10 @@ func (c *Constant) Eval(_ chunk.Row) (types.Datum, error) {
 	return c.Value, nil
 }
 
+func (c *Constant) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) error {
+	panic("Haven't finished yet")
+}
+
 // EvalInt returns int representation of Constant.
 func (c *Constant) EvalInt(ctx sessionctx.Context, _ chunk.Row) (int64, bool, error) {
 	if c.DeferredExpr != nil {
@@ -135,6 +141,15 @@ func (c *Constant) EvalInt(ctx sessionctx.Context, _ chunk.Row) (int64, bool, er
 		return res, err != nil, err
 	}
 	return c.Value.GetInt64(), false, nil
+}
+
+func (c *Constant) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	res := (*vector.VecInt64)(vec)
+	length := chk.Columns[0].Length // use the index 0 to get the column length
+	for i := 0; i < length; i++ {
+		res.Values[i] = *(*int64)(unsafe.Pointer(&c.Value.I))
+	}
+	return nil
 }
 
 // EvalReal returns real representation of Constant.

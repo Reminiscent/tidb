@@ -86,9 +86,9 @@ func (s *testChunkSuite) TestMutRow(c *check.C) {
 	chk.AppendDuration(0, dur)
 	mutRow = MutRowFromTypes(retTypes)
 	mutRow.SetValue(0, dur)
-	c.Assert(chk.columns[0].data, check.BytesEquals, mutRow.c.columns[0].data)
+	c.Assert(chk.Columns[0].Data, check.BytesEquals, mutRow.c.Columns[0].Data)
 	mutRow.SetDatum(0, types.NewDurationDatum(dur))
-	c.Assert(chk.columns[0].data, check.BytesEquals, mutRow.c.columns[0].data)
+	c.Assert(chk.Columns[0].Data, check.BytesEquals, mutRow.c.Columns[0].Data)
 }
 
 func BenchmarkMutRowSetRow(b *testing.B) {

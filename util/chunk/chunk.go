@@ -15,6 +15,7 @@ package chunk
 
 import (
 	"encoding/binary"
+	"github.com/pingcap/tidb/util/vector"
 	"reflect"
 	"unsafe"
 
@@ -35,7 +36,7 @@ type Chunk struct {
 	// If it is nil, all rows are selected.
 	sel []int
 
-	columns []*Column
+	Columns []*Column
 	// numVirtualRows indicates the number of virtual rows, which have zero Column.
 	// It is used only when this Chunk doesn't hold any data, i.e. "len(columns)==0".
 	numVirtualRows int
@@ -63,7 +64,7 @@ func NewChunkWithCapacity(fields []*types.FieldType, cap int) *Chunk {
 //  maxChunkSize: the max limit for the number of rows.
 func New(fields []*types.FieldType, cap, maxChunkSize int) *Chunk {
 	chk := &Chunk{
-		columns:  make([]*Column, 0, len(fields)),
+		Columns:  make([]*Column, 0, len(fields)),
 		capacity: mathutil.Min(cap, maxChunkSize),
 		// set the default value of requiredRows to maxChunkSize to let chk.IsFull() behave
 		// like how we judge whether a chunk is full now, then the statement
@@ -73,7 +74,7 @@ func New(fields []*types.FieldType, cap, maxChunkSize int) *Chunk {
 	}
 
 	for _, f := range fields {
-		chk.columns = append(chk.columns, NewColumn(f, chk.capacity))
+		chk.Columns = append(chk.Columns, NewColumn(f, chk.capacity))
 	}
 
 	return chk
@@ -86,11 +87,11 @@ func New(fields []*types.FieldType, cap, maxChunkSize int) *Chunk {
 //  maxChunkSize: the limit for the max number of rows.
 func Renew(chk *Chunk, maxChunkSize int) *Chunk {
 	newChk := new(Chunk)
-	if chk.columns == nil {
+	if chk.Columns == nil {
 		return newChk
 	}
 	newCap := reCalcCapacity(chk, maxChunkSize)
-	newChk.columns = renewColumns(chk.columns, newCap)
+	newChk.Columns = renewColumns(chk.Columns, newCap)
 	newChk.numVirtualRows = 0
 	newChk.capacity = newCap
 	newChk.requiredRows = maxChunkSize
@@ -115,8 +116,8 @@ func renewColumns(oldCol []*Column, cap int) []*Column {
 // We ignore the size of Column.length and Column.nullCount
 // since they have little effect of the total memory usage.
 func (c *Chunk) MemoryUsage() (sum int64) {
-	for _, col := range c.columns {
-		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*4) + int64(cap(col.data)) + int64(cap(col.elemBuf))
+	for _, col := range c.Columns {
+		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*4) + int64(cap(col.Data)) + int64(cap(col.elemBuf))
 		sum += curColMemUsage
 	}
 	return
@@ -126,7 +127,7 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 func newFixedLenColumn(elemLen, cap int) *Column {
 	return &Column{
 		elemBuf:    make([]byte, elemLen),
-		data:       make([]byte, 0, cap*elemLen),
+		Data:       make([]byte, 0, cap*elemLen),
 		nullBitmap: make([]byte, 0, cap>>3),
 	}
 }
@@ -137,12 +138,12 @@ func newVarLenColumn(cap int, old *Column) *Column {
 	// For varLenColumn (e.g. varchar), the accurate length of an element is unknown.
 	// Therefore, in the first executor.Next we use an experience value -- 8 (so it may make runtime.growslice)
 	// but in the following Next call we estimate the length as AVG x 1.125 elemLen of the previous call.
-	if old != nil && old.length != 0 {
-		estimatedElemLen = (len(old.data) + len(old.data)/8) / old.length
+	if old != nil && old.Length != 0 {
+		estimatedElemLen = (len(old.Data) + len(old.Data)/8) / old.Length
 	}
 	return &Column{
 		offsets:    make([]int64, 1, cap+1),
-		data:       make([]byte, 0, cap*estimatedElemLen),
+		Data:       make([]byte, 0, cap*estimatedElemLen),
 		nullBitmap: make([]byte, 0, cap>>3),
 	}
 }
@@ -168,7 +169,7 @@ func (c *Chunk) IsFull() bool {
 
 // MakeRef makes Column in "dstColIdx" reference to Column in "srcColIdx".
 func (c *Chunk) MakeRef(srcColIdx, dstColIdx int) {
-	c.columns[dstColIdx] = c.columns[srcColIdx]
+	c.Columns[dstColIdx] = c.Columns[srcColIdx]
 }
 
 // MakeRefTo copies columns `src.columns[srcColIdx]` to `c.columns[dstColIdx]`.
@@ -176,7 +177,7 @@ func (c *Chunk) MakeRefTo(dstColIdx int, src *Chunk, srcColIdx int) error {
 	if c.sel != nil || src.sel != nil {
 		return errors.New(msgErrSelNotNil)
 	}
-	c.columns[dstColIdx] = src.columns[srcColIdx]
+	c.Columns[dstColIdx] = src.Columns[srcColIdx]
 	return nil
 }
 
@@ -190,32 +191,32 @@ func (c *Chunk) SwapColumn(colIdx int, other *Chunk, otherIdx int) error {
 	// Find the leftmost Column of the reference which is the actual Column to
 	// be swapped.
 	for i := 0; i < colIdx; i++ {
-		if c.columns[i] == c.columns[colIdx] {
+		if c.Columns[i] == c.Columns[colIdx] {
 			colIdx = i
 		}
 	}
 	for i := 0; i < otherIdx; i++ {
-		if other.columns[i] == other.columns[otherIdx] {
+		if other.Columns[i] == other.Columns[otherIdx] {
 			otherIdx = i
 		}
 	}
 
 	// Find the columns which refer to the actual Column to be swapped.
-	refColsIdx := make([]int, 0, len(c.columns)-colIdx)
-	for i := colIdx; i < len(c.columns); i++ {
-		if c.columns[i] == c.columns[colIdx] {
+	refColsIdx := make([]int, 0, len(c.Columns)-colIdx)
+	for i := colIdx; i < len(c.Columns); i++ {
+		if c.Columns[i] == c.Columns[colIdx] {
 			refColsIdx = append(refColsIdx, i)
 		}
 	}
-	refColsIdx4Other := make([]int, 0, len(other.columns)-otherIdx)
-	for i := otherIdx; i < len(other.columns); i++ {
-		if other.columns[i] == other.columns[otherIdx] {
+	refColsIdx4Other := make([]int, 0, len(other.Columns)-otherIdx)
+	for i := otherIdx; i < len(other.Columns); i++ {
+		if other.Columns[i] == other.Columns[otherIdx] {
 			refColsIdx4Other = append(refColsIdx4Other, i)
 		}
 	}
 
 	// Swap columns from two chunks.
-	c.columns[colIdx], other.columns[otherIdx] = other.columns[otherIdx], c.columns[colIdx]
+	c.Columns[colIdx], other.Columns[otherIdx] = other.Columns[otherIdx], c.Columns[colIdx]
 
 	// Rebuild the reference.
 	for _, i := range refColsIdx {
@@ -230,7 +231,7 @@ func (c *Chunk) SwapColumn(colIdx int, other *Chunk, otherIdx int) error {
 // SwapColumns swaps columns with another Chunk.
 func (c *Chunk) SwapColumns(other *Chunk) {
 	c.sel, other.sel = other.sel, c.sel
-	c.columns, other.columns = other.columns, c.columns
+	c.Columns, other.Columns = other.Columns, c.Columns
 	c.numVirtualRows, other.numVirtualRows = other.numVirtualRows, c.numVirtualRows
 }
 
@@ -244,10 +245,10 @@ func (c *Chunk) SetNumVirtualRows(numVirtualRows int) {
 // Make sure all the data in the chunk is not used anymore before you reuse this chunk.
 func (c *Chunk) Reset() {
 	c.sel = nil
-	if c.columns == nil {
+	if c.Columns == nil {
 		return
 	}
-	for _, col := range c.columns {
+	for _, col := range c.Columns {
 		col.Reset()
 	}
 	c.numVirtualRows = 0
@@ -255,9 +256,9 @@ func (c *Chunk) Reset() {
 
 // CopyConstruct creates a new chunk and copies this chunk's data into it.
 func (c *Chunk) CopyConstruct() *Chunk {
-	newChk := &Chunk{numVirtualRows: c.numVirtualRows, capacity: c.capacity, columns: make([]*Column, len(c.columns))}
-	for i := range c.columns {
-		newChk.columns[i] = c.columns[i].copyConstruct()
+	newChk := &Chunk{numVirtualRows: c.numVirtualRows, capacity: c.capacity, Columns: make([]*Column, len(c.Columns))}
+	for i := range c.Columns {
+		newChk.Columns[i] = c.Columns[i].copyConstruct()
 	}
 	if c.sel != nil {
 		newChk.sel = make([]int, len(c.sel))
@@ -271,7 +272,7 @@ func (c *Chunk) CopyConstruct() *Chunk {
 // TODO: this method will be used in following PR.
 func (c *Chunk) GrowAndReset(maxChunkSize int) {
 	c.sel = nil
-	if c.columns == nil {
+	if c.Columns == nil {
 		return
 	}
 	newCap := reCalcCapacity(c, maxChunkSize)
@@ -280,7 +281,7 @@ func (c *Chunk) GrowAndReset(maxChunkSize int) {
 		return
 	}
 	c.capacity = newCap
-	c.columns = renewColumns(c.columns, newCap)
+	c.Columns = renewColumns(c.Columns, newCap)
 	c.numVirtualRows = 0
 	c.requiredRows = maxChunkSize
 }
@@ -301,7 +302,7 @@ func (c *Chunk) Capacity() int {
 
 // NumCols returns the number of columns in the chunk.
 func (c *Chunk) NumCols() int {
-	return len(c.columns)
+	return len(c.Columns)
 }
 
 // NumRows returns the number of rows in the chunk.
@@ -312,7 +313,7 @@ func (c *Chunk) NumRows() int {
 	if c.NumCols() == 0 {
 		return c.numVirtualRows
 	}
-	return c.columns[0].length
+	return c.Columns[0].Length
 }
 
 // GetRow gets the Row in the chunk with the row index.
@@ -339,19 +340,19 @@ func (c *Chunk) AppendRow(row Row) {
 // AppendPartialRow appends a row to the chunk.
 func (c *Chunk) AppendPartialRow(colIdx int, row Row) {
 	c.appendSel(colIdx)
-	for i, rowCol := range row.c.columns {
-		chkCol := c.columns[colIdx+i]
+	for i, rowCol := range row.c.Columns {
+		chkCol := c.Columns[colIdx+i]
 		chkCol.appendNullBitmap(!rowCol.IsNull(row.idx))
 		if rowCol.isFixed() {
 			elemLen := len(rowCol.elemBuf)
 			offset := row.idx * elemLen
-			chkCol.data = append(chkCol.data, rowCol.data[offset:offset+elemLen]...)
+			chkCol.Data = append(chkCol.Data, rowCol.Data[offset:offset+elemLen]...)
 		} else {
 			start, end := rowCol.offsets[row.idx], rowCol.offsets[row.idx+1]
-			chkCol.data = append(chkCol.data, rowCol.data[start:end]...)
-			chkCol.offsets = append(chkCol.offsets, int64(len(chkCol.data)))
+			chkCol.Data = append(chkCol.Data, rowCol.Data[start:end]...)
+			chkCol.offsets = append(chkCol.offsets, int64(len(chkCol.Data)))
 		}
-		chkCol.length++
+		chkCol.Length++
 	}
 }
 
@@ -367,18 +368,18 @@ func (c *Chunk) AppendPartialRow(colIdx int, row Row) {
 //    byte.
 func (c *Chunk) preAlloc(row Row) (rowIdx uint32) {
 	rowIdx = uint32(c.NumRows())
-	for i, srcCol := range row.c.columns {
-		dstCol := c.columns[i]
+	for i, srcCol := range row.c.Columns {
+		dstCol := c.Columns[i]
 		dstCol.appendNullBitmap(!srcCol.IsNull(row.idx))
 		elemLen := len(srcCol.elemBuf)
 		if !srcCol.isFixed() {
 			elemLen = int(srcCol.offsets[row.idx+1] - srcCol.offsets[row.idx])
-			dstCol.offsets = append(dstCol.offsets, int64(len(dstCol.data)+elemLen))
+			dstCol.offsets = append(dstCol.offsets, int64(len(dstCol.Data)+elemLen))
 		}
-		dstCol.length++
-		needCap := len(dstCol.data) + elemLen
-		if needCap <= cap(dstCol.data) {
-			(*reflect.SliceHeader)(unsafe.Pointer(&dstCol.data)).Len = len(dstCol.data) + elemLen
+		dstCol.Length++
+		needCap := len(dstCol.Data) + elemLen
+		if needCap <= cap(dstCol.Data) {
+			(*reflect.SliceHeader)(unsafe.Pointer(&dstCol.Data)).Len = len(dstCol.Data) + elemLen
 			continue
 		}
 		// Grow the capacity according to golang.growslice.
@@ -387,19 +388,19 @@ func (c *Chunk) preAlloc(row Row) (rowIdx uint32) {
 		// not `1024 bytes`.
 		// 2. We expand the capacity to 1.5*originCap rather than 1.25*originCap
 		// during the slow-increasing phase.
-		newCap := cap(dstCol.data)
+		newCap := cap(dstCol.Data)
 		doubleCap := newCap << 1
 		if needCap > doubleCap {
 			newCap = needCap
 		} else {
 			avgElemLen := elemLen
 			if !srcCol.isFixed() {
-				avgElemLen = len(dstCol.data) / len(dstCol.offsets)
+				avgElemLen = len(dstCol.Data) / len(dstCol.offsets)
 			}
 			// slowIncThreshold indicates the threshold exceeding which the
 			// dstCol.data capacity increase fold decreases from 2 to 1.5.
 			slowIncThreshold := 1024 * avgElemLen
-			if len(dstCol.data) < slowIncThreshold {
+			if len(dstCol.Data) < slowIncThreshold {
 				newCap = doubleCap
 			} else {
 				for 0 < newCap && newCap < needCap {
@@ -410,7 +411,7 @@ func (c *Chunk) preAlloc(row Row) (rowIdx uint32) {
 				}
 			}
 		}
-		dstCol.data = make([]byte, len(dstCol.data)+elemLen, newCap)
+		dstCol.Data = make([]byte, len(dstCol.Data)+elemLen, newCap)
 	}
 	return
 }
@@ -420,11 +421,11 @@ func (c *Chunk) preAlloc(row Row) (rowIdx uint32) {
 // Note: Insert will cover the origin data, it should be called after
 // PreAlloc.
 func (c *Chunk) insert(rowIdx int, row Row) {
-	for i, srcCol := range row.c.columns {
+	for i, srcCol := range row.c.Columns {
 		if row.IsNull(i) {
 			continue
 		}
-		dstCol := c.columns[i]
+		dstCol := c.Columns[i]
 		var srcStart, srcEnd, destStart, destEnd int
 		if srcCol.isFixed() {
 			srcElemLen, destElemLen := len(srcCol.elemBuf), len(dstCol.elemBuf)
@@ -434,20 +435,20 @@ func (c *Chunk) insert(rowIdx int, row Row) {
 			srcStart, srcEnd = int(srcCol.offsets[row.idx]), int(srcCol.offsets[row.idx+1])
 			destStart, destEnd = int(dstCol.offsets[rowIdx]), int(dstCol.offsets[rowIdx+1])
 		}
-		copy(dstCol.data[destStart:destEnd], srcCol.data[srcStart:srcEnd])
+		copy(dstCol.Data[destStart:destEnd], srcCol.Data[srcStart:srcEnd])
 	}
 }
 
 // Append appends rows in [begin, end) in another Chunk to a Chunk.
 func (c *Chunk) Append(other *Chunk, begin, end int) {
-	for colID, src := range other.columns {
-		dst := c.columns[colID]
+	for colID, src := range other.Columns {
+		dst := c.Columns[colID]
 		if src.isFixed() {
 			elemLen := len(src.elemBuf)
-			dst.data = append(dst.data, src.data[begin*elemLen:end*elemLen]...)
+			dst.Data = append(dst.Data, src.Data[begin*elemLen:end*elemLen]...)
 		} else {
 			beginOffset, endOffset := src.offsets[begin], src.offsets[end]
-			dst.data = append(dst.data, src.data[beginOffset:endOffset]...)
+			dst.Data = append(dst.Data, src.Data[beginOffset:endOffset]...)
 			for i := begin; i < end; i++ {
 				dst.offsets = append(dst.offsets, dst.offsets[len(dst.offsets)-1]+src.offsets[i+1]-src.offsets[i])
 			}
@@ -455,7 +456,7 @@ func (c *Chunk) Append(other *Chunk, begin, end int) {
 		for i := begin; i < end; i++ {
 			c.appendSel(colID)
 			dst.appendNullBitmap(!src.IsNull(i))
-			dst.length++
+			dst.Length++
 		}
 	}
 	c.numVirtualRows += end - begin
@@ -464,27 +465,27 @@ func (c *Chunk) Append(other *Chunk, begin, end int) {
 // TruncateTo truncates rows from tail to head in a Chunk to "numRows" rows.
 func (c *Chunk) TruncateTo(numRows int) {
 	c.Reconstruct()
-	for _, col := range c.columns {
+	for _, col := range c.Columns {
 		if col.isFixed() {
 			elemLen := len(col.elemBuf)
-			col.data = col.data[:numRows*elemLen]
+			col.Data = col.Data[:numRows*elemLen]
 		} else {
-			col.data = col.data[:col.offsets[numRows]]
+			col.Data = col.Data[:col.offsets[numRows]]
 			col.offsets = col.offsets[:numRows+1]
 		}
-		for i := numRows; i < col.length; i++ {
+		for i := numRows; i < col.Length; i++ {
 			if col.IsNull(i) {
 				col.nullCount--
 			}
 		}
-		col.length = numRows
-		bitmapLen := (col.length + 7) / 8
+		col.Length = numRows
+		bitmapLen := (col.Length + 7) / 8
 		col.nullBitmap = col.nullBitmap[:bitmapLen]
-		if col.length%8 != 0 {
+		if col.Length%8 != 0 {
 			// When we append null, we simply increment the nullCount,
 			// so we need to clear the unused bits in the last bitmap byte.
 			lastByte := col.nullBitmap[bitmapLen-1]
-			unusedBitsLen := 8 - uint(col.length%8)
+			unusedBitsLen := 8 - uint(col.Length%8)
 			lastByte <<= unusedBitsLen
 			lastByte >>= unusedBitsLen
 			col.nullBitmap[bitmapLen-1] = lastByte
@@ -496,85 +497,93 @@ func (c *Chunk) TruncateTo(numRows int) {
 // AppendNull appends a null value to the chunk.
 func (c *Chunk) AppendNull(colIdx int) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendNull()
+	c.Columns[colIdx].AppendNull()
 }
 
 // AppendInt64 appends a int64 value to the chunk.
 func (c *Chunk) AppendInt64(colIdx int, i int64) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendInt64(i)
+	c.Columns[colIdx].AppendInt64(i)
+}
+
+func (c *Chunk) AppendVectorInt64(colIdx int, vec *vector.VecInt64) {
+	c.appendSel(colIdx)
+	length := len(vec.Values)
+	for i := 0; i < length; i++ {
+		c.Columns[colIdx].AppendInt64(vec.Values[i])
+	}
 }
 
 // AppendUint64 appends a uint64 value to the chunk.
 func (c *Chunk) AppendUint64(colIdx int, u uint64) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendUint64(u)
+	c.Columns[colIdx].AppendUint64(u)
 }
 
 // AppendFloat32 appends a float32 value to the chunk.
 func (c *Chunk) AppendFloat32(colIdx int, f float32) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendFloat32(f)
+	c.Columns[colIdx].AppendFloat32(f)
 }
 
 // AppendFloat64 appends a float64 value to the chunk.
 func (c *Chunk) AppendFloat64(colIdx int, f float64) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendFloat64(f)
+	c.Columns[colIdx].AppendFloat64(f)
 }
 
 // AppendString appends a string value to the chunk.
 func (c *Chunk) AppendString(colIdx int, str string) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendString(str)
+	c.Columns[colIdx].AppendString(str)
 }
 
 // AppendBytes appends a bytes value to the chunk.
 func (c *Chunk) AppendBytes(colIdx int, b []byte) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendBytes(b)
+	c.Columns[colIdx].AppendBytes(b)
 }
 
 // AppendTime appends a Time value to the chunk.
 // TODO: change the time structure so it can be directly written to memory.
 func (c *Chunk) AppendTime(colIdx int, t types.Time) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendTime(t)
+	c.Columns[colIdx].AppendTime(t)
 }
 
 // AppendDuration appends a Duration value to the chunk.
 func (c *Chunk) AppendDuration(colIdx int, dur types.Duration) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendDuration(dur)
+	c.Columns[colIdx].AppendDuration(dur)
 }
 
 // AppendMyDecimal appends a MyDecimal value to the chunk.
 func (c *Chunk) AppendMyDecimal(colIdx int, dec *types.MyDecimal) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendMyDecimal(dec)
+	c.Columns[colIdx].AppendMyDecimal(dec)
 }
 
 // AppendEnum appends an Enum value to the chunk.
 func (c *Chunk) AppendEnum(colIdx int, enum types.Enum) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].appendNameValue(enum.Name, enum.Value)
+	c.Columns[colIdx].appendNameValue(enum.Name, enum.Value)
 }
 
 // AppendSet appends a Set value to the chunk.
 func (c *Chunk) AppendSet(colIdx int, set types.Set) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].appendNameValue(set.Name, set.Value)
+	c.Columns[colIdx].appendNameValue(set.Name, set.Value)
 }
 
 // AppendJSON appends a JSON value to the chunk.
 func (c *Chunk) AppendJSON(colIdx int, j json.BinaryJSON) {
 	c.appendSel(colIdx)
-	c.columns[colIdx].AppendJSON(j)
+	c.Columns[colIdx].AppendJSON(j)
 }
 
 func (c *Chunk) appendSel(colIdx int) {
 	if colIdx == 0 && c.sel != nil { // use column 0 as standard
-		c.sel = append(c.sel, c.columns[0].length)
+		c.sel = append(c.sel, c.Columns[0].Length)
 	}
 }
 
@@ -610,7 +619,7 @@ func (c *Chunk) AppendDatum(colIdx int, d *types.Datum) {
 
 // Column returns the specific column.
 func (c *Chunk) Column(colIdx int) *Column {
-	return c.columns[colIdx]
+	return c.Columns[colIdx]
 }
 
 // Sel returns Sel of this Chunk.
@@ -628,7 +637,7 @@ func (c *Chunk) Reconstruct() {
 	if c.sel == nil {
 		return
 	}
-	for _, col := range c.columns {
+	for _, col := range c.Columns {
 		col.reconstruct(c.sel)
 	}
 	c.numVirtualRows = len(c.sel)

@@ -14,9 +14,6 @@
 package expression
 
 import (
-	"reflect"
-	"testing"
-
 	"github.com/pingcap/check"
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/model"
@@ -28,6 +25,8 @@ import (
 	"github.com/pingcap/tidb/util/chunk"
 	"github.com/pingcap/tidb/util/mock"
 	"github.com/pingcap/tidb/util/testleak"
+	"github.com/pingcap/tidb/util/vector"
+	"reflect"
 )
 
 var _ = check.Suite(&testUtilSuite{})
@@ -358,6 +357,7 @@ func (s *testUtilSuite) TestDisableParseJSONFlag4Expr(c *check.C) {
 	c.Assert(mysql.HasParseToJSONFlag(ft.Flag), check.IsFalse)
 }
 
+/*
 func BenchmarkExtractColumns(b *testing.B) {
 	conditions := []Expression{
 		newFunction(ast.EQ, newColumn(0), newColumn(1)),
@@ -392,12 +392,21 @@ func BenchmarkExprFromSchema(b *testing.B) {
 	}
 	b.ReportAllocs()
 }
+*/
 
 // MockExpr is mainly for test.
 type MockExpr struct {
 	err error
 	t   *types.FieldType
 	i   interface{}
+}
+
+func (m *MockExpr) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) error {
+	panic("implement me")
+}
+
+func (m *MockExpr) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	panic("implement me")
 }
 
 func (m *MockExpr) String() string                          { return "" }

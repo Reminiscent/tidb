@@ -81,13 +81,13 @@ func BenchmarkEncodeChunk(b *testing.B) {
 	numCols := 4
 	numRows := 1024
 
-	chk := &Chunk{columns: make([]*Column, numCols)}
+	chk := &Chunk{Columns: make([]*Column, numCols)}
 	for i := 0; i < numCols; i++ {
-		chk.columns[i] = &Column{
-			length:     numRows,
+		chk.Columns[i] = &Column{
+			Length:     numRows,
 			nullCount:  14,
 			nullBitmap: make([]byte, numRows/8+1),
-			data:       make([]byte, numRows*8),
+			Data:       make([]byte, numRows*8),
 		}
 	}
 
@@ -104,13 +104,13 @@ func BenchmarkDecode(b *testing.B) {
 	numRows := 1024
 
 	colTypes := make([]*types.FieldType, numCols)
-	chk := &Chunk{columns: make([]*Column, numCols)}
+	chk := &Chunk{Columns: make([]*Column, numCols)}
 	for i := 0; i < numCols; i++ {
-		chk.columns[i] = &Column{
-			length:     numRows,
+		chk.Columns[i] = &Column{
+			Length:     numRows,
 			nullCount:  14,
 			nullBitmap: make([]byte, numRows/8+1),
-			data:       make([]byte, numRows*8),
+			Data:       make([]byte, numRows*8),
 		}
 		colTypes[i] = &types.FieldType{
 			Tp: mysql.TypeLonglong,
@@ -131,14 +131,14 @@ func BenchmarkDecodeToChunk(b *testing.B) {
 
 	colTypes := make([]*types.FieldType, numCols)
 	chk := &Chunk{
-		columns: make([]*Column, numCols),
+		Columns: make([]*Column, numCols),
 	}
 	for i := 0; i < numCols; i++ {
-		chk.columns[i] = &Column{
-			length:     numRows,
+		chk.Columns[i] = &Column{
+			Length:     numRows,
 			nullCount:  14,
 			nullBitmap: make([]byte, numRows/8+1),
-			data:       make([]byte, numRows*8),
+			Data:       make([]byte, numRows*8),
 			elemBuf:    make([]byte, 8),
 		}
 		colTypes[i] = &types.FieldType{

@@ -41,7 +41,7 @@ func NewCodec(colTypes []*types.FieldType) *Codec {
 // Encode encodes a Chunk to a byte slice.
 func (c *Codec) Encode(chk *Chunk) []byte {
 	buffer := make([]byte, 0, chk.MemoryUsage())
-	for _, col := range chk.columns {
+	for _, col := range chk.Columns {
 		buffer = c.encodeColumn(buffer, col)
 	}
 	return buffer
@@ -50,7 +50,7 @@ func (c *Codec) Encode(chk *Chunk) []byte {
 func (c *Codec) encodeColumn(buffer []byte, col *Column) []byte {
 	var lenBuffer [4]byte
 	// encode length.
-	binary.LittleEndian.PutUint32(lenBuffer[:], uint32(col.length))
+	binary.LittleEndian.PutUint32(lenBuffer[:], uint32(col.Length))
 	buffer = append(buffer, lenBuffer[:4]...)
 
 	// encode nullCount.
@@ -59,19 +59,19 @@ func (c *Codec) encodeColumn(buffer []byte, col *Column) []byte {
 
 	// encode nullBitmap.
 	if col.nullCount > 0 {
-		numNullBitmapBytes := (col.length + 7) / 8
+		numNullBitmapBytes := (col.Length + 7) / 8
 		buffer = append(buffer, col.nullBitmap[:numNullBitmapBytes]...)
 	}
 
 	// encode offsets.
 	if !col.isFixed() {
-		numOffsetBytes := (col.length + 1) * 8
+		numOffsetBytes := (col.Length + 1) * 8
 		offsetBytes := c.i64SliceToBytes(col.offsets)
 		buffer = append(buffer, offsetBytes[:numOffsetBytes]...)
 	}
 
 	// encode data.
-	buffer = append(buffer, col.data...)
+	buffer = append(buffer, col.Data...)
 	return buffer
 }
 
@@ -92,22 +92,22 @@ func (c *Codec) Decode(buffer []byte) (*Chunk, []byte) {
 	for ordinal := 0; len(buffer) > 0; ordinal++ {
 		col := &Column{}
 		buffer = c.decodeColumn(buffer, col, ordinal)
-		chk.columns = append(chk.columns, col)
+		chk.Columns = append(chk.Columns, col)
 	}
 	return chk, buffer
 }
 
 // DecodeToChunk decodes a Chunk from a byte slice, return the remained unused bytes.
 func (c *Codec) DecodeToChunk(buffer []byte, chk *Chunk) (remained []byte) {
-	for i := 0; i < len(chk.columns); i++ {
-		buffer = c.decodeColumn(buffer, chk.columns[i], i)
+	for i := 0; i < len(chk.Columns); i++ {
+		buffer = c.decodeColumn(buffer, chk.Columns[i], i)
 	}
 	return buffer
 }
 
 func (c *Codec) decodeColumn(buffer []byte, col *Column, ordinal int) (remained []byte) {
 	// decode length.
-	col.length = int(binary.LittleEndian.Uint32(buffer))
+	col.Length = int(binary.LittleEndian.Uint32(buffer))
 	buffer = buffer[4:]
 
 	// decode nullCount.
@@ -116,7 +116,7 @@ func (c *Codec) decodeColumn(buffer []byte, col *Column, ordinal int) (remained 
 
 	// decode nullBitmap.
 	if col.nullCount > 0 {
-		numNullBitmapBytes := (col.length + 7) / 8
+		numNullBitmapBytes := (col.Length + 7) / 8
 		col.nullBitmap = append(col.nullBitmap[:0], buffer[:numNullBitmapBytes]...)
 		buffer = buffer[numNullBitmapBytes:]
 	} else {
@@ -125,25 +125,25 @@ func (c *Codec) decodeColumn(buffer []byte, col *Column, ordinal int) (remained 
 
 	// decode offsets.
 	numFixedBytes := getFixedLen(c.colTypes[ordinal])
-	numDataBytes := int64(numFixedBytes * col.length)
+	numDataBytes := int64(numFixedBytes * col.Length)
 	if numFixedBytes == -1 {
-		numOffsetBytes := (col.length + 1) * 8
+		numOffsetBytes := (col.Length + 1) * 8
 		col.offsets = append(col.offsets[:0], c.bytesToI64Slice(buffer[:numOffsetBytes])...)
 		buffer = buffer[numOffsetBytes:]
-		numDataBytes = col.offsets[col.length]
+		numDataBytes = col.offsets[col.Length]
 	} else if cap(col.elemBuf) < numFixedBytes {
 		col.elemBuf = make([]byte, numFixedBytes)
 	}
 
 	// decode data.
-	col.data = append(col.data[:0], buffer[:numDataBytes]...)
+	col.Data = append(col.Data[:0], buffer[:numDataBytes]...)
 	return buffer[numDataBytes:]
 }
 
 var allNotNullBitmap [128]byte
 
 func (c *Codec) setAllNotNull(col *Column) {
-	numNullBitmapBytes := (col.length + 7) / 8
+	numNullBitmapBytes := (col.Length + 7) / 8
 	col.nullBitmap = col.nullBitmap[:0]
 	for i := 0; i < numNullBitmapBytes; {
 		numAppendBytes := mathutil.Min(numNullBitmapBytes-i, cap(allNotNullBitmap))

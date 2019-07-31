@@ -63,7 +63,7 @@ type Datum struct {
 	collation uint8       // collation can hold uint8 values.
 	decimal   uint16      // decimal can hold uint16 values.
 	length    uint32      // length can hold uint32 values.
-	i         int64       // i can hold int64 uint64 float64 values.
+	I         int64       // i can hold int64 uint64 float64 values.
 	b         []byte      // b can hold string or []byte values.
 	x         interface{} // x hold all other types.
 }
@@ -127,46 +127,46 @@ func (d *Datum) IsNull() bool {
 
 // GetInt64 gets int64 value.
 func (d *Datum) GetInt64() int64 {
-	return d.i
+	return d.I
 }
 
 // SetInt64 sets int64 value.
 func (d *Datum) SetInt64(i int64) {
 	d.k = KindInt64
-	d.i = i
+	d.I = i
 }
 
 // GetUint64 gets uint64 value.
 func (d *Datum) GetUint64() uint64 {
-	return uint64(d.i)
+	return uint64(d.I)
 }
 
 // SetUint64 sets uint64 value.
 func (d *Datum) SetUint64(i uint64) {
 	d.k = KindUint64
-	d.i = int64(i)
+	d.I = int64(i)
 }
 
 // GetFloat64 gets float64 value.
 func (d *Datum) GetFloat64() float64 {
-	return math.Float64frombits(uint64(d.i))
+	return math.Float64frombits(uint64(d.I))
 }
 
 // SetFloat64 sets float64 value.
 func (d *Datum) SetFloat64(f float64) {
 	d.k = KindFloat64
-	d.i = int64(math.Float64bits(f))
+	d.I = int64(math.Float64bits(f))
 }
 
 // GetFloat32 gets float32 value.
 func (d *Datum) GetFloat32() float32 {
-	return float32(math.Float64frombits(uint64(d.i)))
+	return float32(math.Float64frombits(uint64(d.I)))
 }
 
 // SetFloat32 sets float32 value.
 func (d *Datum) SetFloat32(f float32) {
 	d.k = KindFloat32
-	d.i = int64(math.Float64bits(float64(f)))
+	d.I = int64(math.Float64bits(float64(f)))
 }
 
 // GetString gets string value.
@@ -260,26 +260,26 @@ func (d *Datum) SetMysqlDecimal(b *MyDecimal) {
 
 // GetMysqlDuration gets Duration value
 func (d *Datum) GetMysqlDuration() Duration {
-	return Duration{Duration: time.Duration(d.i), Fsp: int(d.decimal)}
+	return Duration{Duration: time.Duration(d.I), Fsp: int(d.decimal)}
 }
 
 // SetMysqlDuration sets Duration value
 func (d *Datum) SetMysqlDuration(b Duration) {
 	d.k = KindMysqlDuration
-	d.i = int64(b.Duration)
+	d.I = int64(b.Duration)
 	d.decimal = uint16(b.Fsp)
 }
 
 // GetMysqlEnum gets Enum value
 func (d *Datum) GetMysqlEnum() Enum {
 	str := string(hack.String(d.b))
-	return Enum{Value: uint64(d.i), Name: str}
+	return Enum{Value: uint64(d.I), Name: str}
 }
 
 // SetMysqlEnum sets Enum value
 func (d *Datum) SetMysqlEnum(b Enum) {
 	d.k = KindMysqlEnum
-	d.i = int64(b.Value)
+	d.I = int64(b.Value)
 	sink(b.Name)
 	d.b = hack.Slice(b.Name)
 }
@@ -287,26 +287,26 @@ func (d *Datum) SetMysqlEnum(b Enum) {
 // GetMysqlSet gets Set value
 func (d *Datum) GetMysqlSet() Set {
 	str := string(hack.String(d.b))
-	return Set{Value: uint64(d.i), Name: str}
+	return Set{Value: uint64(d.I), Name: str}
 }
 
 // SetMysqlSet sets Set value
 func (d *Datum) SetMysqlSet(b Set) {
 	d.k = KindMysqlSet
-	d.i = int64(b.Value)
+	d.I = int64(b.Value)
 	sink(b.Name)
 	d.b = hack.Slice(b.Name)
 }
 
 // GetMysqlJSON gets json.BinaryJSON value
 func (d *Datum) GetMysqlJSON() json.BinaryJSON {
-	return json.BinaryJSON{TypeCode: byte(d.i), Value: d.b}
+	return json.BinaryJSON{TypeCode: byte(d.I), Value: d.b}
 }
 
 // SetMysqlJSON sets json.BinaryJSON value
 func (d *Datum) SetMysqlJSON(b json.BinaryJSON) {
 	d.k = KindMysqlJSON
-	d.i = int64(b.TypeCode)
+	d.I = int64(b.TypeCode)
 	d.b = b.Value
 }
 
@@ -482,12 +482,12 @@ func (d *Datum) compareInt64(sc *stmtctx.StatementContext, i int64) (int, error)
 	case KindMaxValue:
 		return 1, nil
 	case KindInt64:
-		return CompareInt64(d.i, i), nil
+		return CompareInt64(d.I, i), nil
 	case KindUint64:
 		if i < 0 || d.GetUint64() > math.MaxInt64 {
 			return 1, nil
 		}
-		return CompareInt64(d.i, i), nil
+		return CompareInt64(d.I, i), nil
 	default:
 		return d.compareFloat64(sc, float64(i))
 	}
@@ -498,10 +498,10 @@ func (d *Datum) compareUint64(sc *stmtctx.StatementContext, u uint64) (int, erro
 	case KindMaxValue:
 		return 1, nil
 	case KindInt64:
-		if d.i < 0 || u > math.MaxInt64 {
+		if d.I < 0 || u > math.MaxInt64 {
 			return -1, nil
 		}
-		return CompareInt64(d.i, int64(u)), nil
+		return CompareInt64(d.I, int64(u)), nil
 	case KindUint64:
 		return CompareUint64(d.GetUint64(), u), nil
 	default:
@@ -516,7 +516,7 @@ func (d *Datum) compareFloat64(sc *stmtctx.StatementContext, f float64) (int, er
 	case KindMaxValue:
 		return 1, nil
 	case KindInt64:
-		return CompareFloat64(float64(d.i), f), nil
+		return CompareFloat64(float64(d.I), f), nil
 	case KindUint64:
 		return CompareFloat64(float64(d.GetUint64()), f), nil
 	case KindFloat32, KindFloat64:

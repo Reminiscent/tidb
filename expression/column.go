@@ -15,8 +15,6 @@ package expression
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/pingcap/errors"
 	"github.com/pingcap/parser/model"
 	"github.com/pingcap/parser/mysql"
@@ -26,6 +24,8 @@ import (
 	"github.com/pingcap/tidb/types/json"
 	"github.com/pingcap/tidb/util/chunk"
 	"github.com/pingcap/tidb/util/codec"
+	"github.com/pingcap/tidb/util/vector"
+	"strings"
 )
 
 // CorrelatedColumn stands for a column in a correlated sub query.
@@ -33,6 +33,10 @@ type CorrelatedColumn struct {
 	Column
 
 	Data *types.Datum
+}
+
+func (col *CorrelatedColumn) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) error {
+	panic("implement me")
 }
 
 // Clone implements Expression interface.
@@ -55,6 +59,10 @@ func (col *CorrelatedColumn) EvalInt(ctx sessionctx.Context, row chunk.Row) (int
 		return res, err != nil, err
 	}
 	return col.Data.GetInt64(), false, nil
+}
+
+func (col *CorrelatedColumn) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	panic("It hasn't finished yet.")
 }
 
 // EvalReal returns real representation of CorrelatedColumn.
@@ -173,6 +181,10 @@ type Column struct {
 	InOperand bool
 }
 
+func (expr *Column) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) error { //todo:new
+	panic("implement me")
+}
+
 // Equal implements Expression interface.
 func (col *Column) Equal(_ sessionctx.Context, expr Expression) bool {
 	if newCol, ok := expr.(*Column); ok {
@@ -222,6 +234,18 @@ func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, 
 		return 0, true, nil
 	}
 	return row.GetInt64(col.Index), false, nil
+}
+
+func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	res := (*vector.VecInt64)(vec)
+	column := chk.Columns[col.Index]
+	length := column.Length
+
+	for i := 0; i < length; i++ {
+		res.Values[i] = column.GetInt64(i)
+	}
+
+	return nil
 }
 
 // EvalReal returns real representation of Column.

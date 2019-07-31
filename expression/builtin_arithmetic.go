@@ -15,6 +15,7 @@ package expression
 
 import (
 	"fmt"
+	"github.com/pingcap/tidb/util/vector"
 	"math"
 
 	"github.com/cznic/mathutil"
@@ -227,6 +228,38 @@ func (s *builtinArithmeticPlusIntSig) evalInt(row chunk.Row) (val int64, isNull 
 	}
 
 	return a + b, false, nil
+}
+
+func (s *builtinArithmeticPlusIntSig) VectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) (err error) {
+
+	res := (*vector.VecInt64)(vec)
+	length := len(res.Values)
+
+	vec0 := vector.NewVecInt64(length)
+	err = s.args[0].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec0))
+	if err != nil {
+		return err
+	}
+
+	vec1 := vector.NewVecInt64(length)
+	err = s.args[1].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec1))
+	if err != nil {
+		return err
+	}
+
+	res.NullBitmap.Copy(vec0.NullBitmap)
+	res.NullBitmap.Union(vec1.NullBitmap)
+	for i := 0; i < length; i++ {
+		lhs := vec0.Values[i]
+		rhs := vec1.Values[i]
+		if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+			(lhs < 0 && rhs < math.MinInt64-lhs) {
+			return types.ErrOverflow.GenWithStackByArgs(
+				"BIGINT")
+		}
+		res.Values[i] = lhs + rhs
+	}
+	return nil
 }
 
 type builtinArithmeticPlusDecimalSig struct {
@@ -589,12 +622,6 @@ func (c *arithmeticDivideFunctionClass) getFunction(ctx sessionctx.Context, args
 }
 
 type builtinArithmeticDivideRealSig struct{ baseBuiltinFunc }
-
-func (s *builtinArithmeticDivideRealSig) Clone() builtinFunc {
-	newSig := &builtinArithmeticDivideRealSig{}
-	newSig.cloneFrom(&s.baseBuiltinFunc)
-	return newSig
-}
 
 type builtinArithmeticDivideDecimalSig struct{ baseBuiltinFunc }
 

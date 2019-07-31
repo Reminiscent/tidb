@@ -16,6 +16,7 @@ package expression
 import (
 	"bytes"
 	"fmt"
+	"github.com/pingcap/tidb/util/vector"
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/parser/ast"
@@ -229,9 +230,21 @@ func (sf *ScalarFunction) Eval(row chunk.Row) (d types.Datum, err error) {
 	return
 }
 
+func (sf *ScalarFunction) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) (err error) { // todo:new
+	switch evalType := sf.GetType().EvalType(); evalType {
+	case types.ETInt:
+		err = sf.VectorizedEvalInt(sf.GetCtx(), chk, vec)
+	}
+	return
+}
+
 // EvalInt implements Expression interface.
 func (sf *ScalarFunction) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, error) {
 	return sf.Function.evalInt(row)
+}
+
+func (sf *ScalarFunction) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	return sf.Function.VectorizedEvalInt(chk, vec)
 }
 
 // EvalReal implements Expression interface.

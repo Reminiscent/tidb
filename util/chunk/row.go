@@ -45,74 +45,74 @@ func (r Row) Len() int {
 
 // GetInt64 returns the int64 value with the colIdx.
 func (r Row) GetInt64(colIdx int) int64 {
-	return r.c.columns[colIdx].GetInt64(r.idx)
+	return r.c.Columns[colIdx].GetInt64(r.idx)
 }
 
 // GetUint64 returns the uint64 value with the colIdx.
 func (r Row) GetUint64(colIdx int) uint64 {
-	return r.c.columns[colIdx].GetUint64(r.idx)
+	return r.c.Columns[colIdx].GetUint64(r.idx)
 }
 
 // GetFloat32 returns the float32 value with the colIdx.
 func (r Row) GetFloat32(colIdx int) float32 {
-	return r.c.columns[colIdx].GetFloat32(r.idx)
+	return r.c.Columns[colIdx].GetFloat32(r.idx)
 }
 
 // GetFloat64 returns the float64 value with the colIdx.
 func (r Row) GetFloat64(colIdx int) float64 {
-	return r.c.columns[colIdx].GetFloat64(r.idx)
+	return r.c.Columns[colIdx].GetFloat64(r.idx)
 }
 
 // GetString returns the string value with the colIdx.
 func (r Row) GetString(colIdx int) string {
-	return r.c.columns[colIdx].GetString(r.idx)
+	return r.c.Columns[colIdx].GetString(r.idx)
 }
 
 // GetBytes returns the bytes value with the colIdx.
 func (r Row) GetBytes(colIdx int) []byte {
-	return r.c.columns[colIdx].GetBytes(r.idx)
+	return r.c.Columns[colIdx].GetBytes(r.idx)
 }
 
 // GetTime returns the Time value with the colIdx.
 // TODO: use Time structure directly.
 func (r Row) GetTime(colIdx int) types.Time {
-	return r.c.columns[colIdx].GetTime(r.idx)
+	return r.c.Columns[colIdx].GetTime(r.idx)
 }
 
 // GetDuration returns the Duration value with the colIdx.
 func (r Row) GetDuration(colIdx int, fillFsp int) types.Duration {
-	return r.c.columns[colIdx].GetDuration(r.idx, fillFsp)
+	return r.c.Columns[colIdx].GetDuration(r.idx, fillFsp)
 }
 
 func (r Row) getNameValue(colIdx int) (string, uint64) {
-	col := r.c.columns[colIdx]
+	col := r.c.Columns[colIdx]
 	start, end := col.offsets[r.idx], col.offsets[r.idx+1]
 	if start == end {
 		return "", 0
 	}
-	val := *(*uint64)(unsafe.Pointer(&col.data[start]))
-	name := string(hack.String(col.data[start+8 : end]))
+	val := *(*uint64)(unsafe.Pointer(&col.Data[start]))
+	name := string(hack.String(col.Data[start+8 : end]))
 	return name, val
 }
 
 // GetEnum returns the Enum value with the colIdx.
 func (r Row) GetEnum(colIdx int) types.Enum {
-	return r.c.columns[colIdx].GetEnum(r.idx)
+	return r.c.Columns[colIdx].GetEnum(r.idx)
 }
 
 // GetSet returns the Set value with the colIdx.
 func (r Row) GetSet(colIdx int) types.Set {
-	return r.c.columns[colIdx].GetSet(r.idx)
+	return r.c.Columns[colIdx].GetSet(r.idx)
 }
 
 // GetMyDecimal returns the MyDecimal value with the colIdx.
 func (r Row) GetMyDecimal(colIdx int) *types.MyDecimal {
-	return r.c.columns[colIdx].GetDecimal(r.idx)
+	return r.c.Columns[colIdx].GetDecimal(r.idx)
 }
 
 // GetJSON returns the JSON value with the colIdx.
 func (r Row) GetJSON(colIdx int) json.BinaryJSON {
-	return r.c.columns[colIdx].GetJSON(r.idx)
+	return r.c.Columns[colIdx].GetJSON(r.idx)
 }
 
 // GetDatumRow converts chunk.Row to types.DatumRow.
@@ -202,5 +202,5 @@ func (r Row) GetDatum(colIdx int, tp *types.FieldType) types.Datum {
 
 // IsNull returns if the datum in the chunk.Row is null.
 func (r Row) IsNull(colIdx int) bool {
-	return r.c.columns[colIdx].IsNull(r.idx)
+	return r.c.Columns[colIdx].IsNull(r.idx)
 }

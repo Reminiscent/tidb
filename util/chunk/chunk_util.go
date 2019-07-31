@@ -38,26 +38,26 @@ func CopySelectedJoinRows(src *Chunk, innerColOffset, outerColOffset int, select
 // to the destination Chunk.
 // return the number of rows which is selected.
 func copySelectedInnerRows(innerColOffset, outerColOffset int, src *Chunk, selected []bool, dst *Chunk) int {
-	oldLen := dst.columns[innerColOffset].length
+	oldLen := dst.Columns[innerColOffset].Length
 	var srcCols []*Column
 	if innerColOffset == 0 {
-		srcCols = src.columns[:outerColOffset]
+		srcCols = src.Columns[:outerColOffset]
 	} else {
-		srcCols = src.columns[innerColOffset:]
+		srcCols = src.Columns[innerColOffset:]
 	}
 	for j, srcCol := range srcCols {
-		dstCol := dst.columns[innerColOffset+j]
+		dstCol := dst.Columns[innerColOffset+j]
 		if srcCol.isFixed() {
 			for i := 0; i < len(selected); i++ {
 				if !selected[i] {
 					continue
 				}
 				dstCol.appendNullBitmap(!srcCol.IsNull(i))
-				dstCol.length++
+				dstCol.Length++
 
 				elemLen := len(srcCol.elemBuf)
 				offset := i * elemLen
-				dstCol.data = append(dstCol.data, srcCol.data[offset:offset+elemLen]...)
+				dstCol.Data = append(dstCol.Data, srcCol.Data[offset:offset+elemLen]...)
 			}
 		} else {
 			for i := 0; i < len(selected); i++ {
@@ -65,15 +65,15 @@ func copySelectedInnerRows(innerColOffset, outerColOffset int, src *Chunk, selec
 					continue
 				}
 				dstCol.appendNullBitmap(!srcCol.IsNull(i))
-				dstCol.length++
+				dstCol.Length++
 
 				start, end := srcCol.offsets[i], srcCol.offsets[i+1]
-				dstCol.data = append(dstCol.data, srcCol.data[start:end]...)
-				dstCol.offsets = append(dstCol.offsets, int64(len(dstCol.data)))
+				dstCol.Data = append(dstCol.Data, srcCol.Data[start:end]...)
+				dstCol.offsets = append(dstCol.offsets, int64(len(dstCol.Data)))
 			}
 		}
 	}
-	return dst.columns[innerColOffset].length - oldLen
+	return dst.Columns[innerColOffset].Length - oldLen
 }
 
 // copyOuterRows copies the continuous 'numRows' outer rows in the source Chunk
@@ -85,22 +85,22 @@ func copyOuterRows(innerColOffset, outerColOffset int, src *Chunk, numRows int, 
 	row := src.GetRow(0)
 	var srcCols []*Column
 	if innerColOffset == 0 {
-		srcCols = src.columns[outerColOffset:]
+		srcCols = src.Columns[outerColOffset:]
 	} else {
-		srcCols = src.columns[:innerColOffset]
+		srcCols = src.Columns[:innerColOffset]
 	}
 	for i, srcCol := range srcCols {
-		dstCol := dst.columns[outerColOffset+i]
+		dstCol := dst.Columns[outerColOffset+i]
 		dstCol.appendMultiSameNullBitmap(!srcCol.IsNull(row.idx), numRows)
-		dstCol.length += numRows
+		dstCol.Length += numRows
 		if srcCol.isFixed() {
 			elemLen := len(srcCol.elemBuf)
 			start := row.idx * elemLen
 			end := start + numRows*elemLen
-			dstCol.data = append(dstCol.data, srcCol.data[start:end]...)
+			dstCol.Data = append(dstCol.Data, srcCol.Data[start:end]...)
 		} else {
 			start, end := srcCol.offsets[row.idx], srcCol.offsets[row.idx+numRows]
-			dstCol.data = append(dstCol.data, srcCol.data[start:end]...)
+			dstCol.Data = append(dstCol.Data, srcCol.Data[start:end]...)
 			offsets := dstCol.offsets
 			elemLen := srcCol.offsets[row.idx+1] - srcCol.offsets[row.idx]
 			for j := 0; j < numRows; j++ {

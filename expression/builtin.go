@@ -26,6 +26,7 @@ import (
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/types/json"
 	"github.com/pingcap/tidb/util/chunk"
+	"github.com/pingcap/tidb/util/vector"
 	"github.com/pingcap/tipb/go-tipb"
 )
 
@@ -175,6 +176,10 @@ func (b *baseBuiltinFunc) evalInt(row chunk.Row) (int64, bool, error) {
 	panic("baseBuiltinFunc.evalInt() should never be called.")
 }
 
+func (b *baseBuiltinFunc) VectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) error {
+	panic("baseBuiltinFunc.VectorizedevalInt() should never be called.")
+}
+
 func (b *baseBuiltinFunc) evalReal(row chunk.Row) (float64, bool, error) {
 	panic("baseBuiltinFunc.evalReal() should never be called.")
 }
@@ -280,6 +285,9 @@ func newBaseBuiltinCastFunc(builtinFunc baseBuiltinFunc, inUnion bool) baseBuilt
 type builtinFunc interface {
 	// evalInt evaluates int result of builtinFunc by given row.
 	evalInt(row chunk.Row) (val int64, isNull bool, err error)
+
+	VectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) error
+
 	// evalReal evaluates real representation of builtinFunc by given row.
 	evalReal(row chunk.Row) (val float64, isNull bool, err error)
 	// evalString evaluates string representation of builtinFunc by given row.

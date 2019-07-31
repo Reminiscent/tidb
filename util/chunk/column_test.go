@@ -25,13 +25,13 @@ import (
 )
 
 func equalColumn(c1, c2 *Column) bool {
-	if c1.length != c2.length ||
+	if c1.Length != c2.Length ||
 		c1.nullCount != c2.nullCount {
 		return false
 	}
 	if len(c1.nullBitmap) != len(c2.nullBitmap) ||
 		len(c1.offsets) != len(c2.offsets) ||
-		len(c1.data) != len(c2.data) ||
+		len(c1.Data) != len(c2.Data) ||
 		len(c1.elemBuf) != len(c2.elemBuf) {
 		return false
 	}
@@ -45,8 +45,8 @@ func equalColumn(c1, c2 *Column) bool {
 			return false
 		}
 	}
-	for i := range c1.data {
-		if c1.data[i] != c2.data[i] {
+	for i := range c1.Data {
+		if c1.Data[i] != c2.Data[i] {
 			return false
 		}
 	}
@@ -360,7 +360,7 @@ func (s *testChunkSuite) TestReconstructFixedLen(c *check.C) {
 		}
 	}
 	c.Assert(nullCnt, check.Equals, col.nullCount)
-	c.Assert(col.length, check.Equals, len(sel))
+	c.Assert(col.Length, check.Equals, len(sel))
 
 	for i := 0; i < 128; i++ {
 		if i%2 == 0 {
@@ -370,7 +370,7 @@ func (s *testChunkSuite) TestReconstructFixedLen(c *check.C) {
 		}
 	}
 
-	c.Assert(col.length, check.Equals, len(sel)+128)
+	c.Assert(col.Length, check.Equals, len(sel)+128)
 	c.Assert(col.nullCount, check.Equals, nullCnt+128/2)
 	for i := 0; i < 128; i++ {
 		if i%2 == 0 {
@@ -416,7 +416,7 @@ func (s *testChunkSuite) TestReconstructVarLen(c *check.C) {
 		}
 	}
 	c.Assert(nullCnt, check.Equals, col.nullCount)
-	c.Assert(col.length, check.Equals, len(sel))
+	c.Assert(col.Length, check.Equals, len(sel))
 
 	for i := 0; i < 128; i++ {
 		if i%2 == 0 {
@@ -426,7 +426,7 @@ func (s *testChunkSuite) TestReconstructVarLen(c *check.C) {
 		}
 	}
 
-	c.Assert(col.length, check.Equals, len(sel)+128)
+	c.Assert(col.Length, check.Equals, len(sel)+128)
 	c.Assert(col.nullCount, check.Equals, nullCnt+128/2)
 	for i := 0; i < 128; i++ {
 		if i%2 == 0 {

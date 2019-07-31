@@ -47,19 +47,19 @@ func NewPool(initCap int) *Pool {
 func (p *Pool) GetChunk(fields []*types.FieldType) *Chunk {
 	chk := new(Chunk)
 	chk.capacity = p.initCap
-	chk.columns = make([]*Column, len(fields))
+	chk.Columns = make([]*Column, len(fields))
 	for i, f := range fields {
 		switch elemLen := getFixedLen(f); elemLen {
 		case varElemLen:
-			chk.columns[i] = p.varLenColPool.Get().(*Column)
+			chk.Columns[i] = p.varLenColPool.Get().(*Column)
 		case 4:
-			chk.columns[i] = p.fixLenColPool4.Get().(*Column)
+			chk.Columns[i] = p.fixLenColPool4.Get().(*Column)
 		case 8:
-			chk.columns[i] = p.fixLenColPool8.Get().(*Column)
+			chk.Columns[i] = p.fixLenColPool8.Get().(*Column)
 		case 16:
-			chk.columns[i] = p.fixLenColPool16.Get().(*Column)
+			chk.Columns[i] = p.fixLenColPool16.Get().(*Column)
 		case 40:
-			chk.columns[i] = p.fixLenColPool40.Get().(*Column)
+			chk.Columns[i] = p.fixLenColPool40.Get().(*Column)
 		}
 	}
 	return chk
@@ -70,16 +70,16 @@ func (p *Pool) PutChunk(fields []*types.FieldType, chk *Chunk) {
 	for i, f := range fields {
 		switch elemLen := getFixedLen(f); elemLen {
 		case varElemLen:
-			p.varLenColPool.Put(chk.columns[i])
+			p.varLenColPool.Put(chk.Columns[i])
 		case 4:
-			p.fixLenColPool4.Put(chk.columns[i])
+			p.fixLenColPool4.Put(chk.Columns[i])
 		case 8:
-			p.fixLenColPool8.Put(chk.columns[i])
+			p.fixLenColPool8.Put(chk.Columns[i])
 		case 16:
-			p.fixLenColPool16.Put(chk.columns[i])
+			p.fixLenColPool16.Put(chk.Columns[i])
 		case 40:
-			p.fixLenColPool40.Put(chk.columns[i])
+			p.fixLenColPool40.Put(chk.Columns[i])
 		}
 	}
-	chk.columns = nil // release the Column references.
+	chk.Columns = nil // release the Column references.
 }
