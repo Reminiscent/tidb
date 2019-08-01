@@ -235,23 +235,30 @@ func (s *builtinArithmeticPlusIntSig) VectorizedEvalInt(chk *chunk.Chunk, vec ve
 	res := (*vector.VecInt64)(vec)
 	length := len(res.Values)
 
-	vec0 := vector.NewVecInt64(length)
+	// vec0 := vector.NewVecInt64(length)
+	vec0 := vector.NewVecInt64(1024)
 	err = s.args[0].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec0))
 	if err != nil {
 		return err
 	}
 
-	vec1 := vector.NewVecInt64(length)
+	// vec1 := vector.NewVecInt64(length)
+	vec1 := vector.NewVecInt64(1024)
 	err = s.args[1].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec1))
+	// err = s.args[1].VectorizedEvalInt(s.ctx, chk, vec)
 	if err != nil {
 		return err
 	}
 
 	res.NullBitmap.Copy(vec0.NullBitmap)
 	res.NullBitmap.Union(vec1.NullBitmap)
+
+	// res.NullBitmap.Union(vec0.NullBitmap)
+
 	for i := 0; i < length; i++ {
 		lhs := vec0.Values[i]
-		rhs := vec1.Values[i]
+		// rhs := vec1.Values[i]
+		rhs := res.Values[i]
 		if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
 			(lhs < 0 && rhs < math.MinInt64-lhs) {
 			return types.ErrOverflow.GenWithStackByArgs(

@@ -161,8 +161,9 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 
 func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error { // todo:new
 
-	length := input.Columns[0].Length
-	vec := vector.NewVecInt64(length)
+	// length := input.Columns[0].Length
+	// vec := vector.NewVecInt64(length)
+	vec := vector.NewVecInt64(1024)
 	err := expr.VectorizedEvalInt(ctx, input, vector.Vector(vec))
 	if err != nil {
 		return err
