@@ -235,15 +235,15 @@ func (s *builtinArithmeticPlusIntSig) VectorizedEvalInt(chk *chunk.Chunk, vec ve
 	res := (*vector.VecInt64)(vec)
 	length := len(res.Values)
 
-	// vec0 := vector.NewVecInt64(length)
-	vec0 := vector.NewVecInt64(1024)
+	vec0 := vector.NewVecInt64(length)
+	// vec0 := vector.NewVecInt64(1024)
 	err = s.args[0].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec0))
 	if err != nil {
 		return err
 	}
 
-	// vec1 := vector.NewVecInt64(length)
-	vec1 := vector.NewVecInt64(1024)
+	vec1 := vector.NewVecInt64(length)
+	// vec1 := vector.NewVecInt64(1024)
 	err = s.args[1].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec1))
 	// err = s.args[1].VectorizedEvalInt(s.ctx, chk, vec)
 	if err != nil {

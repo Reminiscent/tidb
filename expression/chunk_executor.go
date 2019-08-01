@@ -109,10 +109,10 @@ func evalOneColumn(ctx sessionctx.Context, expr Expression, iterator *chunk.Iter
 	return err
 }
 
-func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) { // todo:new
+func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
 	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
 	case types.ETInt:
-		// the value is right
+
 		err = VectorizedExecuteToInt(ctx, expr, fieldType, input, output, colID)
 	}
 	return err
@@ -161,9 +161,9 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 
 func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error { // todo:new
 
-	// length := input.Columns[0].Length
-	// vec := vector.NewVecInt64(length)
-	vec := vector.NewVecInt64(1024)
+	length := input.Columns[0].Length
+	vec := vector.NewVecInt64(length)
+	// vec := vector.NewVecInt64(1024)
 	err := expr.VectorizedEvalInt(ctx, input, vector.Vector(vec))
 	if err != nil {
 		return err
