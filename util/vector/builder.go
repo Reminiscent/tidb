@@ -31,13 +31,7 @@ func NewVector(colType *types.FieldType, numVals int) Vector {
 		return Vector(NewVecDuration(numVals))
 	case mysql.TypeDate, mysql.TypeDatetime, mysql.TypeTimestamp:
 		return Vector(NewVecDatetime(numVals))
-	case mysql.TypeNewDecimal:
-		return Vector(NewVecDecimal(numVals))
-	case mysql.TypeEnum, mysql.TypeSet:
-		return Vector(NewVecNamedValue(numVals))
-	case mysql.TypeJSON:
-		return Vector(NewVecJSON(numVals))
 	default:
-		return Vector(NewVecString(numVals))
+		return Vector(NewVecDecimal(numVals))
 	}
 }
