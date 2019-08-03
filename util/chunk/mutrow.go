@@ -166,7 +166,7 @@ func newMutRowFixedLenColumn(elemSize int) *Column {
 	buf := make([]byte, elemSize+1)
 	col := &Column{
 		Length:     1,
-		elemBuf:    buf[:elemSize],
+		ElemBuf:    buf[:elemSize],
 		Data:       buf[:elemSize],
 		nullBitmap: buf[elemSize:],
 	}
@@ -207,7 +207,7 @@ func (mr MutRow) SetRow(row Row) {
 			mrCol.nullBitmap[0] = 0
 			continue
 		}
-		elemLen := len(rCol.elemBuf)
+		elemLen := len(rCol.ElemBuf)
 		if elemLen > 0 {
 			copy(mrCol.Data, rCol.Data[row.idx*elemLen:(row.idx+1)*elemLen])
 		} else {
@@ -359,7 +359,7 @@ func (mr MutRow) ShallowCopyPartialRow(colIdx int, row Row) {
 		}
 
 		if srcCol.isFixed() {
-			elemLen := len(srcCol.elemBuf)
+			elemLen := len(srcCol.ElemBuf)
 			offset := row.idx * elemLen
 			dstCol.Data = srcCol.Data[offset : offset+elemLen]
 		} else {

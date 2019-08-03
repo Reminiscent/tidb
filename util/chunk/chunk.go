@@ -104,7 +104,7 @@ func renewColumns(oldCol []*Column, cap int) []*Column {
 	columns := make([]*Column, 0, len(oldCol))
 	for _, col := range oldCol {
 		if col.isFixed() {
-			columns = append(columns, newFixedLenColumn(len(col.elemBuf), cap))
+			columns = append(columns, newFixedLenColumn(len(col.ElemBuf), cap))
 		} else {
 			columns = append(columns, newVarLenColumn(cap, col))
 		}
@@ -117,7 +117,7 @@ func renewColumns(oldCol []*Column, cap int) []*Column {
 // since they have little effect of the total memory usage.
 func (c *Chunk) MemoryUsage() (sum int64) {
 	for _, col := range c.Columns {
-		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*4) + int64(cap(col.Data)) + int64(cap(col.elemBuf))
+		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*4) + int64(cap(col.Data)) + int64(cap(col.ElemBuf))
 		sum += curColMemUsage
 	}
 	return
@@ -126,7 +126,7 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 // newFixedLenColumn creates a fixed length Column with elemLen and initial data capacity.
 func newFixedLenColumn(elemLen, cap int) *Column {
 	return &Column{
-		elemBuf:    make([]byte, elemLen),
+		ElemBuf:    make([]byte, elemLen),
 		Data:       make([]byte, 0, cap*elemLen),
 		nullBitmap: make([]byte, 0, cap>>3),
 	}
@@ -339,12 +339,12 @@ func (c *Chunk) AppendRow(row Row) {
 
 // AppendPartialRow appends a row to the chunk.
 func (c *Chunk) AppendPartialRow(colIdx int, row Row) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	for i, rowCol := range row.c.Columns {
 		chkCol := c.Columns[colIdx+i]
-		chkCol.appendNullBitmap(!rowCol.IsNull(row.idx))
+		chkCol.AppendNullBitmap(!rowCol.IsNull(row.idx))
 		if rowCol.isFixed() {
-			elemLen := len(rowCol.elemBuf)
+			elemLen := len(rowCol.ElemBuf)
 			offset := row.idx * elemLen
 			chkCol.Data = append(chkCol.Data, rowCol.Data[offset:offset+elemLen]...)
 		} else {
@@ -370,8 +370,8 @@ func (c *Chunk) preAlloc(row Row) (rowIdx uint32) {
 	rowIdx = uint32(c.NumRows())
 	for i, srcCol := range row.c.Columns {
 		dstCol := c.Columns[i]
-		dstCol.appendNullBitmap(!srcCol.IsNull(row.idx))
-		elemLen := len(srcCol.elemBuf)
+		dstCol.AppendNullBitmap(!srcCol.IsNull(row.idx))
+		elemLen := len(srcCol.ElemBuf)
 		if !srcCol.isFixed() {
 			elemLen = int(srcCol.offsets[row.idx+1] - srcCol.offsets[row.idx])
 			dstCol.offsets = append(dstCol.offsets, int64(len(dstCol.Data)+elemLen))
@@ -428,7 +428,7 @@ func (c *Chunk) insert(rowIdx int, row Row) {
 		dstCol := c.Columns[i]
 		var srcStart, srcEnd, destStart, destEnd int
 		if srcCol.isFixed() {
-			srcElemLen, destElemLen := len(srcCol.elemBuf), len(dstCol.elemBuf)
+			srcElemLen, destElemLen := len(srcCol.ElemBuf), len(dstCol.ElemBuf)
 			srcStart, destStart = row.idx*srcElemLen, rowIdx*destElemLen
 			srcEnd, destEnd = srcStart+srcElemLen, destStart+destElemLen
 		} else {
@@ -444,7 +444,7 @@ func (c *Chunk) Append(other *Chunk, begin, end int) {
 	for colID, src := range other.Columns {
 		dst := c.Columns[colID]
 		if src.isFixed() {
-			elemLen := len(src.elemBuf)
+			elemLen := len(src.ElemBuf)
 			dst.Data = append(dst.Data, src.Data[begin*elemLen:end*elemLen]...)
 		} else {
 			beginOffset, endOffset := src.offsets[begin], src.offsets[end]
@@ -454,8 +454,8 @@ func (c *Chunk) Append(other *Chunk, begin, end int) {
 			}
 		}
 		for i := begin; i < end; i++ {
-			c.appendSel(colID)
-			dst.appendNullBitmap(!src.IsNull(i))
+			c.AppendSel(colID)
+			dst.AppendNullBitmap(!src.IsNull(i))
 			dst.Length++
 		}
 	}
@@ -467,7 +467,7 @@ func (c *Chunk) TruncateTo(numRows int) {
 	c.Reconstruct()
 	for _, col := range c.Columns {
 		if col.isFixed() {
-			elemLen := len(col.elemBuf)
+			elemLen := len(col.ElemBuf)
 			col.Data = col.Data[:numRows*elemLen]
 		} else {
 			col.Data = col.Data[:col.offsets[numRows]]
@@ -496,18 +496,18 @@ func (c *Chunk) TruncateTo(numRows int) {
 
 // AppendNull appends a null value to the chunk.
 func (c *Chunk) AppendNull(colIdx int) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendNull()
 }
 
 // AppendInt64 appends a int64 value to the chunk.
 func (c *Chunk) AppendInt64(colIdx int, i int64) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendInt64(i)
 }
 
 func (c *Chunk) AppendVectorInt64(colIdx int, vec *vector.VecInt64) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	length := len(vec.Values)
 	for i := 0; i < length; i++ {
 		c.Columns[colIdx].AppendInt64(vec.Values[i])
@@ -516,72 +516,72 @@ func (c *Chunk) AppendVectorInt64(colIdx int, vec *vector.VecInt64) {
 
 // AppendUint64 appends a uint64 value to the chunk.
 func (c *Chunk) AppendUint64(colIdx int, u uint64) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendUint64(u)
 }
 
 // AppendFloat32 appends a float32 value to the chunk.
 func (c *Chunk) AppendFloat32(colIdx int, f float32) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendFloat32(f)
 }
 
 // AppendFloat64 appends a float64 value to the chunk.
 func (c *Chunk) AppendFloat64(colIdx int, f float64) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendFloat64(f)
 }
 
 // AppendString appends a string value to the chunk.
 func (c *Chunk) AppendString(colIdx int, str string) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendString(str)
 }
 
 // AppendBytes appends a bytes value to the chunk.
 func (c *Chunk) AppendBytes(colIdx int, b []byte) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendBytes(b)
 }
 
 // AppendTime appends a Time value to the chunk.
 // TODO: change the time structure so it can be directly written to memory.
 func (c *Chunk) AppendTime(colIdx int, t types.Time) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendTime(t)
 }
 
 // AppendDuration appends a Duration value to the chunk.
 func (c *Chunk) AppendDuration(colIdx int, dur types.Duration) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendDuration(dur)
 }
 
 // AppendMyDecimal appends a MyDecimal value to the chunk.
 func (c *Chunk) AppendMyDecimal(colIdx int, dec *types.MyDecimal) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendMyDecimal(dec)
 }
 
 // AppendEnum appends an Enum value to the chunk.
 func (c *Chunk) AppendEnum(colIdx int, enum types.Enum) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].appendNameValue(enum.Name, enum.Value)
 }
 
 // AppendSet appends a Set value to the chunk.
 func (c *Chunk) AppendSet(colIdx int, set types.Set) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].appendNameValue(set.Name, set.Value)
 }
 
 // AppendJSON appends a JSON value to the chunk.
 func (c *Chunk) AppendJSON(colIdx int, j json.BinaryJSON) {
-	c.appendSel(colIdx)
+	c.AppendSel(colIdx)
 	c.Columns[colIdx].AppendJSON(j)
 }
 
-func (c *Chunk) appendSel(colIdx int) {
+func (c *Chunk) AppendSel(colIdx int) {
 	if colIdx == 0 && c.sel != nil { // use column 0 as standard
 		c.sel = append(c.sel, c.Columns[0].Length)
 	}

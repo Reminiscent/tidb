@@ -16,6 +16,7 @@ package expression
 import (
 	"github.com/pingcap/tidb/util/vector"
 	"strconv"
+	"unsafe"
 
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/mysql"
@@ -168,7 +169,18 @@ func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *
 	if err != nil {
 		return err
 	}
-	output.AppendVectorInt64(colID, vec)
+	// output.AppendVectorInt64(colID, vec)
+
+	output.AppendSel(colID)
+	column := output.Columns[colID]
+	for i := 0; i < length; i++ {
+		j := vec.Values[i]
+
+		*(*int64)(unsafe.Pointer(&column.ElemBuf[0])) = j
+		column.Data = append(column.Data, column.ElemBuf...)
+		column.AppendNullBitmap(true)
+		column.Length++
+	}
 	return nil
 }
 

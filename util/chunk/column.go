@@ -30,7 +30,7 @@ func (c *Column) AppendDuration(dur types.Duration) {
 
 // AppendMyDecimal appends a MyDecimal value into this Column.
 func (c *Column) AppendMyDecimal(dec *types.MyDecimal) {
-	*(*types.MyDecimal)(unsafe.Pointer(&c.elemBuf[0])) = *dec
+	*(*types.MyDecimal)(unsafe.Pointer(&c.ElemBuf[0])) = *dec
 	c.finishAppendFixed()
 }
 
@@ -62,7 +62,7 @@ type Column struct {
 	nullBitmap []byte
 	offsets    []int64
 	Data       []byte
-	elemBuf    []byte
+	ElemBuf    []byte
 }
 
 // NewColumn creates a new column with the specific length and capacity.
@@ -75,7 +75,7 @@ func NewColumn(ft *types.FieldType, cap int) *Column {
 }
 
 func (c *Column) isFixed() bool {
-	return c.elemBuf != nil
+	return c.ElemBuf != nil
 }
 
 // Reset resets this Column.
@@ -101,11 +101,11 @@ func (c *Column) copyConstruct() *Column {
 	newCol.nullBitmap = append(newCol.nullBitmap, c.nullBitmap...)
 	newCol.offsets = append(newCol.offsets, c.offsets...)
 	newCol.Data = append(newCol.Data, c.Data...)
-	newCol.elemBuf = append(newCol.elemBuf, c.elemBuf...)
+	newCol.ElemBuf = append(newCol.ElemBuf, c.ElemBuf...)
 	return newCol
 }
 
-func (c *Column) appendNullBitmap(notNull bool) {
+func (c *Column) AppendNullBitmap(notNull bool) {
 	idx := c.Length >> 3
 	if idx >= len(c.nullBitmap) {
 		c.nullBitmap = append(c.nullBitmap, 0)
@@ -146,9 +146,9 @@ func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
 
 // AppendNull appends a null value into this Column.
 func (c *Column) AppendNull() {
-	c.appendNullBitmap(false)
+	c.AppendNullBitmap(false)
 	if c.isFixed() {
-		c.Data = append(c.Data, c.elemBuf...)
+		c.Data = append(c.Data, c.ElemBuf...)
 	} else {
 		c.offsets = append(c.offsets, c.offsets[c.Length])
 	}
@@ -156,37 +156,37 @@ func (c *Column) AppendNull() {
 }
 
 func (c *Column) finishAppendFixed() {
-	c.Data = append(c.Data, c.elemBuf...)
-	c.appendNullBitmap(true)
+	c.Data = append(c.Data, c.ElemBuf...)
+	c.AppendNullBitmap(true)
 	c.Length++
 }
 
 // AppendInt64 appends an int64 value into this Column.
 func (c *Column) AppendInt64(i int64) {
-	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = i
+	*(*int64)(unsafe.Pointer(&c.ElemBuf[0])) = i
 	c.finishAppendFixed()
 }
 
 // AppendUint64 appends a uint64 value into this Column.
 func (c *Column) AppendUint64(u uint64) {
-	*(*uint64)(unsafe.Pointer(&c.elemBuf[0])) = u
+	*(*uint64)(unsafe.Pointer(&c.ElemBuf[0])) = u
 	c.finishAppendFixed()
 }
 
 // AppendFloat32 appends a float32 value into this Column.
 func (c *Column) AppendFloat32(f float32) {
-	*(*float32)(unsafe.Pointer(&c.elemBuf[0])) = f
+	*(*float32)(unsafe.Pointer(&c.ElemBuf[0])) = f
 	c.finishAppendFixed()
 }
 
 // AppendFloat64 appends a float64 value into this Column.
 func (c *Column) AppendFloat64(f float64) {
-	*(*float64)(unsafe.Pointer(&c.elemBuf[0])) = f
+	*(*float64)(unsafe.Pointer(&c.ElemBuf[0])) = f
 	c.finishAppendFixed()
 }
 
 func (c *Column) finishAppendVar() {
-	c.appendNullBitmap(true)
+	c.AppendNullBitmap(true)
 	c.offsets = append(c.offsets, int64(len(c.Data)))
 	c.Length++
 }
@@ -205,7 +205,7 @@ func (c *Column) AppendBytes(b []byte) {
 
 // AppendTime appends a time value into this Column.
 func (c *Column) AppendTime(t types.Time) {
-	writeTime(c.elemBuf, t)
+	writeTime(c.ElemBuf, t)
 	c.finishAppendFixed()
 }
 
@@ -342,7 +342,7 @@ func (c *Column) reconstruct(sel []int) {
 	}
 	nullCnt := 0
 	if c.isFixed() {
-		elemLen := len(c.elemBuf)
+		elemLen := len(c.ElemBuf)
 		for dst, src := range sel {
 			idx := dst >> 3
 			pos := uint16(dst & 7)

@@ -131,8 +131,8 @@ func (c *Codec) decodeColumn(buffer []byte, col *Column, ordinal int) (remained 
 		col.offsets = append(col.offsets[:0], c.bytesToI64Slice(buffer[:numOffsetBytes])...)
 		buffer = buffer[numOffsetBytes:]
 		numDataBytes = col.offsets[col.Length]
-	} else if cap(col.elemBuf) < numFixedBytes {
-		col.elemBuf = make([]byte, numFixedBytes)
+	} else if cap(col.ElemBuf) < numFixedBytes {
+		col.ElemBuf = make([]byte, numFixedBytes)
 	}
 
 	// decode data.

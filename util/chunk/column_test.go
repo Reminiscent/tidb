@@ -32,7 +32,7 @@ func equalColumn(c1, c2 *Column) bool {
 	if len(c1.nullBitmap) != len(c2.nullBitmap) ||
 		len(c1.offsets) != len(c2.offsets) ||
 		len(c1.Data) != len(c2.Data) ||
-		len(c1.elemBuf) != len(c2.elemBuf) {
+		len(c1.ElemBuf) != len(c2.ElemBuf) {
 		return false
 	}
 	for i := range c1.nullBitmap {
@@ -50,8 +50,8 @@ func equalColumn(c1, c2 *Column) bool {
 			return false
 		}
 	}
-	for i := range c1.elemBuf {
-		if c1.elemBuf[i] != c2.elemBuf[i] {
+	for i := range c1.ElemBuf {
+		if c1.ElemBuf[i] != c2.ElemBuf[i] {
 			return false
 		}
 	}

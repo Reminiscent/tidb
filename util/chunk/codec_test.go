@@ -139,7 +139,7 @@ func BenchmarkDecodeToChunk(b *testing.B) {
 			nullCount:  14,
 			nullBitmap: make([]byte, numRows/8+1),
 			Data:       make([]byte, numRows*8),
-			elemBuf:    make([]byte, 8),
+			ElemBuf:    make([]byte, 8),
 		}
 		colTypes[i] = &types.FieldType{
 			Tp: mysql.TypeLonglong,

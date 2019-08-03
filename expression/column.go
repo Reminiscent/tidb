@@ -26,6 +26,7 @@ import (
 	"github.com/pingcap/tidb/util/codec"
 	"github.com/pingcap/tidb/util/vector"
 	"strings"
+	"unsafe"
 )
 
 // CorrelatedColumn stands for a column in a correlated sub query.
@@ -242,7 +243,7 @@ func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, v
 	length := column.Length
 
 	for i := 0; i < length; i++ {
-		res.Values[i] = column.GetInt64(i)
+		res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
 	}
 
 	return nil
