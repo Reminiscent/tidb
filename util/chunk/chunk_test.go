@@ -161,21 +161,21 @@ func (s *testChunkSuite) TestAppend(c *check.C) {
 
 	c.Assert(dst.Columns[0].Length, check.Equals, 12)
 	c.Assert(dst.Columns[0].nullCount, check.Equals, 6)
-	c.Assert(string(dst.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(string(dst.Columns[0].NullBitmap), check.Equals, string([]byte{0x55, 0x05}))
 	c.Assert(len(dst.Columns[0].offsets), check.Equals, 0)
 	c.Assert(len(dst.Columns[0].Data), check.Equals, 4*12)
 	c.Assert(len(dst.Columns[0].ElemBuf), check.Equals, 4)
 
 	c.Assert(dst.Columns[1].Length, check.Equals, 12)
 	c.Assert(dst.Columns[1].nullCount, check.Equals, 6)
-	c.Assert(string(dst.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(string(dst.Columns[0].NullBitmap), check.Equals, string([]byte{0x55, 0x05}))
 	c.Assert(fmt.Sprintf("%v", dst.Columns[1].offsets), check.Equals, fmt.Sprintf("%v", []int64{0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 18, 18}))
 	c.Assert(string(dst.Columns[1].Data), check.Equals, "abcabcabcabcabcabc")
 	c.Assert(len(dst.Columns[1].ElemBuf), check.Equals, 0)
 
 	c.Assert(dst.Columns[2].Length, check.Equals, 12)
 	c.Assert(dst.Columns[2].nullCount, check.Equals, 6)
-	c.Assert(string(dst.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(string(dst.Columns[0].NullBitmap), check.Equals, string([]byte{0x55, 0x05}))
 	c.Assert(len(dst.Columns[2].offsets), check.Equals, 13)
 	c.Assert(len(dst.Columns[2].Data), check.Equals, 150)
 	c.Assert(len(dst.Columns[2].ElemBuf), check.Equals, 0)
@@ -214,21 +214,21 @@ func (s *testChunkSuite) TestTruncateTo(c *check.C) {
 
 	c.Assert(src.Columns[0].Length, check.Equals, 12)
 	c.Assert(src.Columns[0].nullCount, check.Equals, 6)
-	c.Assert(string(src.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(string(src.Columns[0].NullBitmap), check.Equals, string([]byte{0x55, 0x05}))
 	c.Assert(len(src.Columns[0].offsets), check.Equals, 0)
 	c.Assert(len(src.Columns[0].Data), check.Equals, 4*12)
 	c.Assert(len(src.Columns[0].ElemBuf), check.Equals, 4)
 
 	c.Assert(src.Columns[1].Length, check.Equals, 12)
 	c.Assert(src.Columns[1].nullCount, check.Equals, 6)
-	c.Assert(string(src.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(string(src.Columns[0].NullBitmap), check.Equals, string([]byte{0x55, 0x05}))
 	c.Assert(fmt.Sprintf("%v", src.Columns[1].offsets), check.Equals, fmt.Sprintf("%v", []int64{0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 18, 18}))
 	c.Assert(string(src.Columns[1].Data), check.Equals, "abcabcabcabcabcabc")
 	c.Assert(len(src.Columns[1].ElemBuf), check.Equals, 0)
 
 	c.Assert(src.Columns[2].Length, check.Equals, 12)
 	c.Assert(src.Columns[2].nullCount, check.Equals, 6)
-	c.Assert(string(src.Columns[0].nullBitmap), check.Equals, string([]byte{0x55, 0x05}))
+	c.Assert(string(src.Columns[0].NullBitmap), check.Equals, string([]byte{0x55, 0x05}))
 	c.Assert(len(src.Columns[2].offsets), check.Equals, 13)
 	c.Assert(len(src.Columns[2].Data), check.Equals, 150)
 	c.Assert(len(src.Columns[2].ElemBuf), check.Equals, 0)
@@ -653,7 +653,7 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 		c.Assert(len(srcCol.ElemBuf), check.Equals, len(destCol.ElemBuf))
 		c.Assert(len(srcCol.Data), check.Equals, len(destCol.Data))
 		c.Assert(len(srcCol.offsets), check.Equals, len(destCol.offsets))
-		c.Assert(len(srcCol.nullBitmap), check.Equals, len(destCol.nullBitmap))
+		c.Assert(len(srcCol.NullBitmap), check.Equals, len(destCol.NullBitmap))
 		c.Assert(srcCol.Length, check.Equals, destCol.Length)
 		c.Assert(srcCol.nullCount, check.Equals, destCol.nullCount)
 
@@ -663,8 +663,8 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 		for j, val := range srcCol.offsets {
 			c.Assert(val, check.Equals, destCol.offsets[j])
 		}
-		for j, val := range srcCol.nullBitmap {
-			c.Assert(val, check.Equals, destCol.nullBitmap[j])
+		for j, val := range srcCol.NullBitmap {
+			c.Assert(val, check.Equals, destCol.NullBitmap[j])
 		}
 		for _, val := range destCol.ElemBuf {
 			c.Assert(val == 0, check.IsTrue)
@@ -684,8 +684,8 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 		for j, val := range srcCol.offsets {
 			c.Assert(val, check.Equals, destCol.offsets[j])
 		}
-		for j, val := range srcCol.nullBitmap {
-			c.Assert(val, check.Equals, destCol.nullBitmap[j])
+		for j, val := range srcCol.NullBitmap {
+			c.Assert(val, check.Equals, destCol.NullBitmap[j])
 		}
 		for _, val := range destCol.ElemBuf {
 			c.Assert(val == 0, check.IsTrue)
@@ -718,8 +718,8 @@ func (s *testChunkSuite) TestPreAlloc4RowAndInsert(c *check.C) {
 		for j, val := range srcCol.offsets {
 			c.Assert(val, check.Equals, destCol.offsets[j])
 		}
-		for j, val := range srcCol.nullBitmap {
-			c.Assert(val, check.Equals, destCol.nullBitmap[j])
+		for j, val := range srcCol.NullBitmap {
+			c.Assert(val, check.Equals, destCol.NullBitmap[j])
 		}
 		for _, val := range destCol.ElemBuf {
 			c.Assert(val == 0, check.IsTrue)

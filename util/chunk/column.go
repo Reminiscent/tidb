@@ -59,7 +59,7 @@ func (c *Column) AppendSet(set types.Set) {
 type Column struct {
 	Length     int
 	nullCount  int
-	nullBitmap []byte
+	NullBitmap []byte
 	offsets    []int64
 	Data       []byte
 	ElemBuf    []byte
@@ -82,7 +82,7 @@ func (c *Column) isFixed() bool {
 func (c *Column) Reset() {
 	c.Length = 0
 	c.nullCount = 0
-	c.nullBitmap = c.nullBitmap[:0]
+	c.NullBitmap = c.NullBitmap[:0]
 	if len(c.offsets) > 0 {
 		// The first offset is always 0, it makes slicing the data easier, we need to keep it.
 		c.offsets = c.offsets[:1]
@@ -92,13 +92,13 @@ func (c *Column) Reset() {
 
 // IsNull returns if this row is null.
 func (c *Column) IsNull(rowIdx int) bool {
-	nullByte := c.nullBitmap[rowIdx/8]
+	nullByte := c.NullBitmap[rowIdx/8]
 	return nullByte&(1<<(uint(rowIdx)&7)) == 0
 }
 
 func (c *Column) copyConstruct() *Column {
 	newCol := &Column{Length: c.Length, nullCount: c.nullCount}
-	newCol.nullBitmap = append(newCol.nullBitmap, c.nullBitmap...)
+	newCol.NullBitmap = append(newCol.NullBitmap, c.NullBitmap...)
 	newCol.offsets = append(newCol.offsets, c.offsets...)
 	newCol.Data = append(newCol.Data, c.Data...)
 	newCol.ElemBuf = append(newCol.ElemBuf, c.ElemBuf...)
@@ -107,12 +107,12 @@ func (c *Column) copyConstruct() *Column {
 
 func (c *Column) AppendNullBitmap(notNull bool) {
 	idx := c.Length >> 3
-	if idx >= len(c.nullBitmap) {
-		c.nullBitmap = append(c.nullBitmap, 0)
+	if idx >= len(c.NullBitmap) {
+		c.NullBitmap = append(c.NullBitmap, 0)
 	}
 	if notNull {
 		pos := uint(c.Length) & 7
-		c.nullBitmap[idx] |= byte(1 << pos)
+		c.NullBitmap[idx] |= byte(1 << pos)
 	} else {
 		c.nullCount++
 	}
@@ -122,13 +122,13 @@ func (c *Column) AppendNullBitmap(notNull bool) {
 // notNull means not null.
 // num means the number of bits that should be appended.
 func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
-	numNewBytes := ((c.Length + num + 7) >> 3) - len(c.nullBitmap)
+	numNewBytes := ((c.Length + num + 7) >> 3) - len(c.NullBitmap)
 	b := byte(0)
 	if notNull {
 		b = 0xff
 	}
 	for i := 0; i < numNewBytes; i++ {
-		c.nullBitmap = append(c.nullBitmap, b)
+		c.NullBitmap = append(c.NullBitmap, b)
 	}
 	if !notNull {
 		c.nullCount += num
@@ -137,11 +137,11 @@ func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
 	// 1. Set all the remaining bits in the last slot of old c.numBitMap to 1.
 	numRemainingBits := uint(c.Length % 8)
 	bitMask := byte(^((1 << numRemainingBits) - 1))
-	c.nullBitmap[c.Length/8] |= bitMask
+	c.NullBitmap[c.Length/8] |= bitMask
 	// 2. Set all the redundant bits in the last slot of new c.numBitMap to 0.
-	numRedundantBits := uint(len(c.nullBitmap)*8 - c.Length - num)
+	numRedundantBits := uint(len(c.NullBitmap)*8 - c.Length - num)
 	bitMask = byte(1<<(8-numRedundantBits)) - 1
-	c.nullBitmap[len(c.nullBitmap)-1] &= bitMask
+	c.NullBitmap[len(c.NullBitmap)-1] &= bitMask
 }
 
 // AppendNull appends a null value into this Column.
@@ -348,10 +348,10 @@ func (c *Column) reconstruct(sel []int) {
 			pos := uint16(dst & 7)
 			if c.IsNull(src) {
 				nullCnt++
-				c.nullBitmap[idx] &= ^byte(1 << pos)
+				c.NullBitmap[idx] &= ^byte(1 << pos)
 			} else {
 				copy(c.Data[dst*elemLen:dst*elemLen+elemLen], c.Data[src*elemLen:src*elemLen+elemLen])
-				c.nullBitmap[idx] |= byte(1 << pos)
+				c.NullBitmap[idx] |= byte(1 << pos)
 			}
 		}
 		c.Data = c.Data[:len(sel)*elemLen]
@@ -362,14 +362,14 @@ func (c *Column) reconstruct(sel []int) {
 			pos := uint(dst & 7)
 			if c.IsNull(src) {
 				nullCnt++
-				c.nullBitmap[idx] &= ^byte(1 << pos)
+				c.NullBitmap[idx] &= ^byte(1 << pos)
 				c.offsets[dst+1] = int64(tail)
 			} else {
 				start, end := c.offsets[src], c.offsets[src+1]
 				copy(c.Data[tail:], c.Data[start:end])
 				tail += int(end - start)
 				c.offsets[dst+1] = int64(tail)
-				c.nullBitmap[idx] |= byte(1 << pos)
+				c.NullBitmap[idx] |= byte(1 << pos)
 			}
 		}
 		c.Data = c.Data[:tail]
@@ -379,10 +379,10 @@ func (c *Column) reconstruct(sel []int) {
 	c.nullCount = nullCnt
 
 	// clean nullBitmap
-	c.nullBitmap = c.nullBitmap[:(len(sel)+7)>>3]
+	c.NullBitmap = c.NullBitmap[:(len(sel)+7)>>3]
 	idx := len(sel) >> 3
-	if idx < len(c.nullBitmap) {
+	if idx < len(c.NullBitmap) {
 		pos := uint16(len(sel) & 7)
-		c.nullBitmap[idx] &= byte((1 << pos) - 1)
+		c.NullBitmap[idx] &= byte((1 << pos) - 1)
 	}
 }

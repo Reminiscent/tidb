@@ -117,7 +117,7 @@ func renewColumns(oldCol []*Column, cap int) []*Column {
 // since they have little effect of the total memory usage.
 func (c *Chunk) MemoryUsage() (sum int64) {
 	for _, col := range c.Columns {
-		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.nullBitmap)) + int64(cap(col.offsets)*4) + int64(cap(col.Data)) + int64(cap(col.ElemBuf))
+		curColMemUsage := int64(unsafe.Sizeof(*col)) + int64(cap(col.NullBitmap)) + int64(cap(col.offsets)*4) + int64(cap(col.Data)) + int64(cap(col.ElemBuf))
 		sum += curColMemUsage
 	}
 	return
@@ -128,7 +128,7 @@ func newFixedLenColumn(elemLen, cap int) *Column {
 	return &Column{
 		ElemBuf:    make([]byte, elemLen),
 		Data:       make([]byte, 0, cap*elemLen),
-		nullBitmap: make([]byte, 0, cap>>3),
+		NullBitmap: make([]byte, 0, cap>>3),
 	}
 }
 
@@ -144,7 +144,7 @@ func newVarLenColumn(cap int, old *Column) *Column {
 	return &Column{
 		offsets:    make([]int64, 1, cap+1),
 		Data:       make([]byte, 0, cap*estimatedElemLen),
-		nullBitmap: make([]byte, 0, cap>>3),
+		NullBitmap: make([]byte, 0, cap>>3),
 	}
 }
 
@@ -480,15 +480,15 @@ func (c *Chunk) TruncateTo(numRows int) {
 		}
 		col.Length = numRows
 		bitmapLen := (col.Length + 7) / 8
-		col.nullBitmap = col.nullBitmap[:bitmapLen]
+		col.NullBitmap = col.NullBitmap[:bitmapLen]
 		if col.Length%8 != 0 {
 			// When we append null, we simply increment the nullCount,
 			// so we need to clear the unused bits in the last bitmap byte.
-			lastByte := col.nullBitmap[bitmapLen-1]
+			lastByte := col.NullBitmap[bitmapLen-1]
 			unusedBitsLen := 8 - uint(col.Length%8)
 			lastByte <<= unusedBitsLen
 			lastByte >>= unusedBitsLen
-			col.nullBitmap[bitmapLen-1] = lastByte
+			col.NullBitmap[bitmapLen-1] = lastByte
 		}
 	}
 	c.numVirtualRows = numRows

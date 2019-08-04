@@ -60,7 +60,7 @@ func (c *Codec) encodeColumn(buffer []byte, col *Column) []byte {
 	// encode nullBitmap.
 	if col.nullCount > 0 {
 		numNullBitmapBytes := (col.Length + 7) / 8
-		buffer = append(buffer, col.nullBitmap[:numNullBitmapBytes]...)
+		buffer = append(buffer, col.NullBitmap[:numNullBitmapBytes]...)
 	}
 
 	// encode offsets.
@@ -117,7 +117,7 @@ func (c *Codec) decodeColumn(buffer []byte, col *Column, ordinal int) (remained 
 	// decode nullBitmap.
 	if col.nullCount > 0 {
 		numNullBitmapBytes := (col.Length + 7) / 8
-		col.nullBitmap = append(col.nullBitmap[:0], buffer[:numNullBitmapBytes]...)
+		col.NullBitmap = append(col.NullBitmap[:0], buffer[:numNullBitmapBytes]...)
 		buffer = buffer[numNullBitmapBytes:]
 	} else {
 		c.setAllNotNull(col)
@@ -144,10 +144,10 @@ var allNotNullBitmap [128]byte
 
 func (c *Codec) setAllNotNull(col *Column) {
 	numNullBitmapBytes := (col.Length + 7) / 8
-	col.nullBitmap = col.nullBitmap[:0]
+	col.NullBitmap = col.NullBitmap[:0]
 	for i := 0; i < numNullBitmapBytes; {
 		numAppendBytes := mathutil.Min(numNullBitmapBytes-i, cap(allNotNullBitmap))
-		col.nullBitmap = append(col.nullBitmap, allNotNullBitmap[:numAppendBytes]...)
+		col.NullBitmap = append(col.NullBitmap, allNotNullBitmap[:numAppendBytes]...)
 		i += numAppendBytes
 	}
 }

@@ -29,14 +29,14 @@ func equalColumn(c1, c2 *Column) bool {
 		c1.nullCount != c2.nullCount {
 		return false
 	}
-	if len(c1.nullBitmap) != len(c2.nullBitmap) ||
+	if len(c1.NullBitmap) != len(c2.NullBitmap) ||
 		len(c1.offsets) != len(c2.offsets) ||
 		len(c1.Data) != len(c2.Data) ||
 		len(c1.ElemBuf) != len(c2.ElemBuf) {
 		return false
 	}
-	for i := range c1.nullBitmap {
-		if c1.nullBitmap[i] != c2.nullBitmap[i] {
+	for i := range c1.NullBitmap {
+		if c1.NullBitmap[i] != c2.NullBitmap[i] {
 			return false
 		}
 	}

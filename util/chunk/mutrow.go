@@ -110,7 +110,7 @@ func makeMutRowColumn(in interface{}) *Column {
 	switch x := in.(type) {
 	case nil:
 		col := makeMutRowUint64Column(uint64(0))
-		col.nullBitmap[0] = 0
+		col.NullBitmap[0] = 0
 		return col
 	case int:
 		return makeMutRowUint64Column(uint64(x))
@@ -168,9 +168,9 @@ func newMutRowFixedLenColumn(elemSize int) *Column {
 		Length:     1,
 		ElemBuf:    buf[:elemSize],
 		Data:       buf[:elemSize],
-		nullBitmap: buf[elemSize:],
+		NullBitmap: buf[elemSize:],
 	}
-	col.nullBitmap[0] = 1
+	col.NullBitmap[0] = 1
 	return col
 }
 
@@ -180,9 +180,9 @@ func newMutRowVarLenColumn(valSize int) *Column {
 		Length:     1,
 		offsets:    []int64{0, int64(valSize)},
 		Data:       buf[:valSize],
-		nullBitmap: buf[valSize:],
+		NullBitmap: buf[valSize:],
 	}
-	col.nullBitmap[0] = 1
+	col.NullBitmap[0] = 1
 	return col
 }
 
@@ -195,7 +195,7 @@ func makeMutRowUint64Column(val uint64) *Column {
 func makeMutRowBytesColumn(bin []byte) *Column {
 	col := newMutRowVarLenColumn(len(bin))
 	copy(col.Data, bin)
-	col.nullBitmap[0] = 1
+	col.NullBitmap[0] = 1
 	return col
 }
 
@@ -204,7 +204,7 @@ func (mr MutRow) SetRow(row Row) {
 	for colIdx, rCol := range row.c.Columns {
 		mrCol := mr.c.Columns[colIdx]
 		if rCol.IsNull(row.idx) {
-			mrCol.nullBitmap[0] = 0
+			mrCol.NullBitmap[0] = 0
 			continue
 		}
 		elemLen := len(rCol.ElemBuf)
@@ -213,7 +213,7 @@ func (mr MutRow) SetRow(row Row) {
 		} else {
 			setMutRowBytes(mrCol, rCol.Data[rCol.offsets[row.idx]:rCol.offsets[row.idx+1]])
 		}
-		mrCol.nullBitmap[0] = 1
+		mrCol.NullBitmap[0] = 1
 	}
 }
 
@@ -228,7 +228,7 @@ func (mr MutRow) SetValues(vals ...interface{}) {
 func (mr MutRow) SetValue(colIdx int, val interface{}) {
 	col := mr.c.Columns[colIdx]
 	if val == nil {
-		col.nullBitmap[0] = 0
+		col.NullBitmap[0] = 0
 		return
 	}
 	switch x := val.(type) {
@@ -261,7 +261,7 @@ func (mr MutRow) SetValue(colIdx int, val interface{}) {
 	case json.BinaryJSON:
 		setMutRowJSON(col, x)
 	}
-	col.nullBitmap[0] = 1
+	col.NullBitmap[0] = 1
 }
 
 // SetDatums sets the MutRow with datum slice.
@@ -275,7 +275,7 @@ func (mr MutRow) SetDatums(datums ...types.Datum) {
 func (mr MutRow) SetDatum(colIdx int, d types.Datum) {
 	col := mr.c.Columns[colIdx]
 	if d.IsNull() {
-		col.nullBitmap[0] = 0
+		col.NullBitmap[0] = 0
 		return
 	}
 	switch d.Kind() {
@@ -302,7 +302,7 @@ func (mr MutRow) SetDatum(colIdx int, d types.Datum) {
 	default:
 		mr.c.Columns[colIdx] = makeMutRowColumn(d.GetValue())
 	}
-	col.nullBitmap[0] = 1
+	col.NullBitmap[0] = 1
 }
 
 func setMutRowBytes(col *Column, bin []byte) {
@@ -311,7 +311,7 @@ func setMutRowBytes(col *Column, bin []byte) {
 	} else {
 		buf := make([]byte, len(bin)+1)
 		col.Data = buf[:len(bin)]
-		col.nullBitmap = buf[len(bin):]
+		col.NullBitmap = buf[len(bin):]
 	}
 	copy(col.Data, bin)
 	col.offsets[1] = int64(len(bin))
@@ -324,7 +324,7 @@ func setMutRowNameValue(col *Column, name string, val uint64) {
 	} else {
 		buf := make([]byte, dataLen+1)
 		col.Data = buf[:dataLen]
-		col.nullBitmap = buf[dataLen:]
+		col.NullBitmap = buf[dataLen:]
 	}
 	binary.LittleEndian.PutUint64(col.Data, val)
 	copy(col.Data[8:], name)
@@ -340,7 +340,7 @@ func setMutRowJSON(col *Column, j json.BinaryJSON) {
 		// we should allocate one more byte for null bitmap.
 		buf := make([]byte, dataLen+1)
 		col.Data = buf[:dataLen]
-		col.nullBitmap = buf[dataLen:]
+		col.NullBitmap = buf[dataLen:]
 	}
 	col.Data[0] = j.TypeCode
 	copy(col.Data[1:], j.Value)
@@ -353,9 +353,9 @@ func (mr MutRow) ShallowCopyPartialRow(colIdx int, row Row) {
 		dstCol := mr.c.Columns[colIdx+i]
 		if !srcCol.IsNull(row.idx) {
 			// MutRow only contains one row, so we can directly set the whole byte.
-			dstCol.nullBitmap[0] = 1
+			dstCol.NullBitmap[0] = 1
 		} else {
-			dstCol.nullBitmap[0] = 0
+			dstCol.NullBitmap[0] = 0
 		}
 
 		if srcCol.isFixed() {

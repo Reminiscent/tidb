@@ -173,13 +173,19 @@ func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *
 
 	output.AppendSel(colID)
 	column := output.Columns[colID]
+	column.Length = length
+	/*
+		if (len(column.NullBitmap) < length) {
+			column.NullBitmap = make([]byte, 0, length)
+		}
+	*/
 	for i := 0; i < length; i++ {
 		j := vec.Values[i]
 
 		*(*int64)(unsafe.Pointer(&column.ElemBuf[0])) = j
 		column.Data = append(column.Data, column.ElemBuf...)
-		column.AppendNullBitmap(true)
-		column.Length++
+		// column.AppendNullBitmap(true)
+		column.NullBitmap = append(column.NullBitmap, 1) // directly set the NullBitmap notNull
 	}
 	return nil
 }

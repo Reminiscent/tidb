@@ -243,10 +243,13 @@ func (s *builtinArithmeticPlusIntSig) VectorizedEvalInt(chk *chunk.Chunk, vec ve
 		return err
 	}
 	var tmp [1024]int64
-	for i := 0; i < length; i++ {
-		tmp[i] = res.Values[i]
-	}
+	copy(res.Values, tmp[0:length])
 
+	/*
+		for i := 0; i < length; i++ {
+			tmp[i] = res.Values[i]
+		}
+	*/
 	// vec1 := vector.NewVecInt64(length)
 	// vec1 := vector.NewVecInt64(1024)
 	// err = s.args[1].VectorizedEvalInt(s.ctx, chk, vector.Vector(vec1))

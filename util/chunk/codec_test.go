@@ -86,7 +86,7 @@ func BenchmarkEncodeChunk(b *testing.B) {
 		chk.Columns[i] = &Column{
 			Length:     numRows,
 			nullCount:  14,
-			nullBitmap: make([]byte, numRows/8+1),
+			NullBitmap: make([]byte, numRows/8+1),
 			Data:       make([]byte, numRows*8),
 		}
 	}
@@ -109,7 +109,7 @@ func BenchmarkDecode(b *testing.B) {
 		chk.Columns[i] = &Column{
 			Length:     numRows,
 			nullCount:  14,
-			nullBitmap: make([]byte, numRows/8+1),
+			NullBitmap: make([]byte, numRows/8+1),
 			Data:       make([]byte, numRows*8),
 		}
 		colTypes[i] = &types.FieldType{
@@ -137,7 +137,7 @@ func BenchmarkDecodeToChunk(b *testing.B) {
 		chk.Columns[i] = &Column{
 			Length:     numRows,
 			nullCount:  14,
-			nullBitmap: make([]byte, numRows/8+1),
+			NullBitmap: make([]byte, numRows/8+1),
 			Data:       make([]byte, numRows*8),
 			ElemBuf:    make([]byte, 8),
 		}
