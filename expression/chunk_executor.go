@@ -14,15 +14,13 @@
 package expression
 
 import (
-	"github.com/pingcap/tidb/util/vector"
-	"strconv"
-	"unsafe"
-
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/mysql"
 	"github.com/pingcap/tidb/sessionctx"
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/util/chunk"
+	"github.com/pingcap/tidb/util/vector"
+	"strconv"
 )
 
 // Vectorizable checks whether a list of expressions can employ vectorized execution.
@@ -179,14 +177,18 @@ func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *
 			column.NullBitmap = make([]byte, 0, length)
 		}
 	*/
-	for i := 0; i < length; i++ {
-		j := vec.Values[i]
+	/*
+		for i := 0; i < length; i++ {
+			j := vec.Values[i]
 
-		*(*int64)(unsafe.Pointer(&column.ElemBuf[0])) = j
-		column.Data = append(column.Data, column.ElemBuf...)
-		// column.AppendNullBitmap(true)
-		column.NullBitmap = append(column.NullBitmap, 1) // directly set the NullBitmap notNull
-	}
+			*(*int64)(unsafe.Pointer(&column.ElemBuf[0])) = j
+			column.Data = append(column.Data, column.ElemBuf...)
+			// column.AppendNullBitmap(true)
+			column.NullBitmap = append(column.NullBitmap, 1) // directly set the NullBitmap notNull
+
+		}
+
+	*/
 	return nil
 }
 
