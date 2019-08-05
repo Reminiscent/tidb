@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/pingcap/tidb/util/vector"
 	"math"
+	"sync"
 
 	"github.com/cznic/mathutil"
 	"github.com/pingcap/parser/mysql"
@@ -243,7 +244,7 @@ func (s *builtinArithmeticPlusIntSig) VectorizedEvalInt(chk *chunk.Chunk, vec ve
 		return err
 	}
 	var tmp [1024]int64
-	copy(res.Values, tmp[0:length])
+	copy(tmp[0:length], res.Values)
 
 	/*
 		for i := 0; i < length; i++ {
@@ -260,19 +261,100 @@ func (s *builtinArithmeticPlusIntSig) VectorizedEvalInt(chk *chunk.Chunk, vec ve
 
 	// res.NullBitmap.Copy(vec0.NullBitmap)
 	// res.NullBitmap.Union(vec1.NullBitmap)
-
-	for i := 0; i < length; i++ {
-		// lhs := vec0.Values[i]
-		lhs := tmp[i]
-		// rhs := vec1.Values[i]
-		rhs := res.Values[i]
-		if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
-			(lhs < 0 && rhs < math.MinInt64-lhs) {
-			return types.ErrOverflow.GenWithStackByArgs(
-				"BIGINT")
+	/*
+		for i := 0; i < length; i++ {
+			// lhs := vec0.Values[i]
+			lhs := tmp[i]
+			// rhs := vec1.Values[i]
+			rhs := res.Values[i]
+			if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+				(lhs < 0 && rhs < math.MinInt64-lhs) {
+				return types.ErrOverflow.GenWithStackByArgs(
+					"BIGINT")
+			}
+			res.Values[i] += lhs
 		}
-		res.Values[i] = lhs + rhs
+		 //*/
+
+	///*
+	length0 := length / 4
+	length1 := length / 2
+	length2 := length0 + length1
+
+	var wg sync.WaitGroup
+	flag := false
+	wg.Add(4)
+
+	go func() {
+		wg.Done()
+		for i := 0; i < length0; i++ {
+			// lhs := vec0.Values[i]
+			lhs := tmp[i]
+			// rhs := vec1.Values[i]
+			rhs := res.Values[i]
+			if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+				(lhs < 0 && rhs < math.MinInt64-lhs) {
+				flag = true
+				break
+			}
+			res.Values[i] += lhs
+		}
+	}()
+
+	go func() {
+		wg.Done()
+		for i := length0; i < length1; i++ {
+			// lhs := vec0.Values[i]
+			lhs := tmp[i]
+			// rhs := vec1.Values[i]
+			rhs := res.Values[i]
+			if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+				(lhs < 0 && rhs < math.MinInt64-lhs) {
+				flag = true
+				break
+			}
+			res.Values[i] += lhs
+		}
+	}()
+
+	go func() {
+		wg.Done()
+		for i := length1; i < length2; i++ {
+			// lhs := vec0.Values[i]
+			lhs := tmp[i]
+			// rhs := vec1.Values[i]
+			rhs := res.Values[i]
+			if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+				(lhs < 0 && rhs < math.MinInt64-lhs) {
+				flag = true
+				break
+			}
+			res.Values[i] += lhs
+		}
+	}()
+
+	go func() {
+		wg.Done()
+		for i := length2; i < length; i++ {
+			// lhs := vec0.Values[i]
+			lhs := tmp[i]
+			// rhs := vec1.Values[i]
+			rhs := res.Values[i]
+			if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+				(lhs < 0 && rhs < math.MinInt64-lhs) {
+				flag = true
+				break
+			}
+			res.Values[i] += lhs
+		}
+	}()
+
+	wg.Wait()
+	if flag {
+		return types.ErrOverflow.GenWithStackByArgs(
+			"BIGINT")
 	}
+	//*/
 	return nil
 }
 
