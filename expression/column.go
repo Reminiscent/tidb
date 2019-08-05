@@ -26,7 +26,6 @@ import (
 	"github.com/pingcap/tidb/util/codec"
 	"github.com/pingcap/tidb/util/vector"
 	"strings"
-	"sync"
 	"unsafe"
 )
 
@@ -242,49 +241,10 @@ func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, v
 	res := (*vector.VecInt64)(vec)
 	column := chk.Columns[col.Index]
 	length := column.Length
-	///*
-	length0 := length / 4
-	length1 := length / 2
-	length2 := length0 + length1
 
-	var wg sync.WaitGroup
-	wg.Add(4)
-
-	go func() {
-		defer wg.Done()
-		for i := 0; i < length0; i++ {
-			res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		for i := length0; i < length1; i++ {
-			res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		for i := length1; i < length2; i++ {
-			res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		for i := length2; i < length; i++ {
-			res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
-		}
-	}()
-	wg.Wait()
-	//*/
-
-	/*
-		for i := 0; i < length; i++ {
-			res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
-		}
-		//*/
+	for i := 0; i < length; i++ {
+		res.Values[i] = *(*int64)(unsafe.Pointer(&column.Data[i*8]))
+	}
 	return nil
 }
 
