@@ -125,9 +125,6 @@ func (c *Chunk) GetColumnLength(idx int) int {
 	return c.columns[idx].GetLength()
 }
 
-// newFixedLenColumn creates a fixed length Column with elemLen and initial data capacity.
-func newFixedLenColumn(elemLen, cap int) *Column {
-	return &Column{
 // newFixedLenColumn creates a fixed length column with elemLen and initial data capacity.
 func newFixedLenColumn(elemLen, cap int) *column {
 	return &column{
@@ -485,12 +482,6 @@ func (c *Chunk) AppendInt64(colIdx int, i int64) {
 
 // AppendVectorInt64 appends a vector of int64 value to the chunk.
 func (c *Chunk) AppendVectorInt64(colIdx int, vec vector.Vector) {
-	length := c.columns[0].GetLength()
-	if colIdx == 0 && c.sel != nil {
-		for i := 0; i < length; i++ {
-			c.sel = append(c.sel, i)
-		}
-	}
 	c.columns[colIdx].AppendVectorInt64(vec)
 }
 
