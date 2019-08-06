@@ -14,6 +14,7 @@
 package chunk
 
 import (
+	"github.com/pingcap/tidb/util/vector"
 	"reflect"
 	"time"
 	"unsafe"
@@ -74,6 +75,10 @@ func NewColumn(ft *types.FieldType, cap int) *Column {
 	return newFixedLenColumn(typeSize, cap)
 }
 
+func (c *Column) GetLength() int {
+	return c.length
+}
+
 func (c *Column) isFixed() bool {
 	return c.elemBuf != nil
 }
@@ -103,6 +108,15 @@ func (c *Column) copyConstruct() *Column {
 	newCol.data = append(newCol.data, c.data...)
 	newCol.elemBuf = append(newCol.elemBuf, c.elemBuf...)
 	return newCol
+}
+
+// SetVectorInt copy the value from the column.data to vector.VecInt64
+func (c *Column) SetVectorInt(length int, vec vector.Vector) {
+	res := (*vector.VecInt64)(vec)
+	for i := 0; i < length; i++ {
+		value := *(*int64)(unsafe.Pointer(&c.data[i*8]))
+		res.SetValue(i, value)
+	}
 }
 
 func (c *Column) appendNullBitmap(notNull bool) {
@@ -165,6 +179,20 @@ func (c *Column) finishAppendFixed() {
 func (c *Column) AppendInt64(i int64) {
 	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = i
 	c.finishAppendFixed()
+}
+
+// AppendVectorInt64 appends an vector of int64 value into this Column.
+func (c *Column) AppendVectorInt64(vec vector.Vector) {
+	res := (*vector.VecInt64)(vec)
+	length := res.GetLength()
+
+	for i := 0; i < length; i++ {
+		j := res.GetValue(i)
+		*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = j
+		c.data = append(c.data, c.elemBuf...)
+	}
+	c.appendMultiSameNullBitmap(true, length)
+	c.length += length
 }
 
 // AppendUint64 appends a uint64 value into this Column.
