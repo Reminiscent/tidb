@@ -424,6 +424,16 @@ func (d *Datum) SetValue(val interface{}) {
 	}
 }
 
+// SetVectorValue sets any kind of value.
+func (d *Datum) SetVectorValue(val interface{}) {
+	switch x := val.(type) {
+	case int64:
+		d.SetInt64(x)
+	default:
+		d.SetInterface(x)
+	}
+}
+
 // CompareDatum compares datum to another datum.
 // TODO: return error properly.
 func (d *Datum) CompareDatum(sc *stmtctx.StatementContext, ad *Datum) (int, error) {

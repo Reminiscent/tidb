@@ -15,8 +15,6 @@ package expression
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/pingcap/errors"
 	"github.com/pingcap/parser/model"
 	"github.com/pingcap/parser/mysql"
@@ -26,6 +24,8 @@ import (
 	"github.com/pingcap/tidb/types/json"
 	"github.com/pingcap/tidb/util/chunk"
 	"github.com/pingcap/tidb/util/codec"
+	"github.com/pingcap/tidb/util/vector"
+	"strings"
 )
 
 // CorrelatedColumn stands for a column in a correlated sub query.
@@ -208,6 +208,16 @@ func (col *Column) Eval(row chunk.Row) (types.Datum, error) {
 	return row.GetDatum(col.Index, col.RetType), nil
 }
 
+// VectorizedEval implements Expression interface.
+func (col *Column) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error) {
+	/* todo
+	length := chk.GetColumnLength(0)
+	d := make([]types.Datum, 0, length)
+	return row.GetDatum(col.Index, col.RetType), nil
+	*/
+	panic("implement me")
+}
+
 // EvalInt returns int representation of Column.
 func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, error) {
 	if col.GetType().Hybrid() {
@@ -222,6 +232,12 @@ func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, 
 		return 0, true, nil
 	}
 	return row.GetInt64(col.Index), false, nil
+}
+
+// VectorizedEvalInt set a vector of int representation of Column.
+func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	chk.SetVectorIntFromColumn(col.Index, vec)
+	return nil
 }
 
 // EvalReal returns real representation of Column.

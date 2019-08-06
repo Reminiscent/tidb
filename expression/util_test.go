@@ -14,7 +14,8 @@
 package expression
 
 import (
-	"testing"
+	"github.com/pingcap/tidb/util/vector"
+	"reflect"
 
 	"github.com/pingcap/check"
 	"github.com/pingcap/parser/ast"
@@ -127,6 +128,7 @@ func (s *testUtilSuite) TestDisableParseJSONFlag4Expr(c *check.C) {
 	c.Assert(mysql.HasParseToJSONFlag(ft.Flag), check.IsFalse)
 }
 
+/*
 func BenchmarkExtractColumns(b *testing.B) {
 	conditions := []Expression{
 		newFunction(ast.EQ, newColumn(0), newColumn(1)),
@@ -160,4 +162,12 @@ func BenchmarkExprFromSchema(b *testing.B) {
 		ExprFromSchema(expr, schema)
 	}
 	b.ReportAllocs()
+}
+
+func (m *MockExpr) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error) {
+	panic("implement me")
+}
+
+func (m *MockExpr) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
+	panic("implement me")
 }

@@ -15,6 +15,7 @@ package chunk
 
 import (
 	"encoding/binary"
+	"github.com/pingcap/tidb/util/vector"
 	"reflect"
 	"unsafe"
 
@@ -120,6 +121,13 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 	return
 }
 
+func (c *Chunk) GetColumnLength(idx int) int {
+	return c.columns[idx].GetLength()
+}
+
+// newFixedLenColumn creates a fixed length Column with elemLen and initial data capacity.
+func newFixedLenColumn(elemLen, cap int) *Column {
+	return &Column{
 // newFixedLenColumn creates a fixed length column with elemLen and initial data capacity.
 func newFixedLenColumn(elemLen, cap int) *column {
 	return &column{
@@ -459,6 +467,12 @@ func (c *Chunk) TruncateTo(numRows int) {
 	c.numVirtualRows = numRows
 }
 
+// SetVectorIntFromColumn get the value from columns[idx] and then set the vector.Vector
+func (c *Chunk) SetVectorIntFromColumn(idx int, vec vector.Vector) {
+	length := c.columns[idx].GetLength()
+	c.columns[idx].SetVectorInt(length, vec)
+}
+
 // AppendNull appends a null value to the chunk.
 func (c *Chunk) AppendNull(colIdx int) {
 	c.columns[colIdx].appendNull()
@@ -467,6 +481,17 @@ func (c *Chunk) AppendNull(colIdx int) {
 // AppendInt64 appends a int64 value to the chunk.
 func (c *Chunk) AppendInt64(colIdx int, i int64) {
 	c.columns[colIdx].appendInt64(i)
+}
+
+// AppendVectorInt64 appends a vector of int64 value to the chunk.
+func (c *Chunk) AppendVectorInt64(colIdx int, vec vector.Vector) {
+	length := c.columns[0].GetLength()
+	if colIdx == 0 && c.sel != nil {
+		for i := 0; i < length; i++ {
+			c.sel = append(c.sel, i)
+		}
+	}
+	c.columns[colIdx].AppendVectorInt64(vec)
 }
 
 // AppendUint64 appends a uint64 value to the chunk.

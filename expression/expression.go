@@ -16,6 +16,7 @@ package expression
 import (
 	goJSON "encoding/json"
 	"fmt"
+	"github.com/pingcap/tidb/util/vector"
 
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/model"
@@ -46,8 +47,14 @@ type Expression interface {
 	// Eval evaluates an expression through a row.
 	Eval(row chunk.Row) (types.Datum, error)
 
+	// VectorizedEval evaluates an expression through a chunk.
+	VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error)
+
 	// EvalInt returns the int64 representation of expression.
 	EvalInt(ctx sessionctx.Context, row chunk.Row) (val int64, isNull bool, err error)
+
+	// EvalInt returns the vector of int64 representation of expression.
+	VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error
 
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)

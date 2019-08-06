@@ -14,6 +14,7 @@
 package chunk
 
 import (
+	"github.com/pingcap/tidb/util/vector"
 	"unsafe"
 
 	"github.com/pingcap/tidb/types"
@@ -52,7 +53,20 @@ type column struct {
 	elemBuf    []byte
 }
 
-func (c *column) isFixed() bool {
+// NewColumn creates a new column with the specific length and capacity.
+func NewColumn(ft *types.FieldType, cap int) *Column {
+	typeSize := getFixedLen(ft)
+	if typeSize == varElemLen {
+		return newVarLenColumn(cap, nil)
+	}
+	return newFixedLenColumn(typeSize, cap)
+}
+
+func (c *Column) GetLength() int {
+	return c.length
+}
+
+func (c *Column) isFixed() bool {
 	return c.elemBuf != nil
 }
 
@@ -81,7 +95,16 @@ func (c *column) copyConstruct() *column {
 	return newCol
 }
 
-func (c *column) appendNullBitmap(notNull bool) {
+// SetVectorInt copy the value from the column.data to vector.VecInt64
+func (c *Column) SetVectorInt(length int, vec vector.Vector) {
+	res := (*vector.VecInt64)(vec)
+	for i := 0; i < length; i++ {
+		value := *(*int64)(unsafe.Pointer(&c.data[i*8]))
+		res.SetValue(i, value)
+	}
+}
+
+func (c *Column) appendNullBitmap(notNull bool) {
 	idx := c.length >> 3
 	if idx >= len(c.nullBitmap) {
 		c.nullBitmap = append(c.nullBitmap, 0)
@@ -141,7 +164,22 @@ func (c *column) appendInt64(i int64) {
 	c.finishAppendFixed()
 }
 
-func (c *column) appendUint64(u uint64) {
+// AppendVectorInt64 appends an vector of int64 value into this Column.
+func (c *Column) AppendVectorInt64(vec vector.Vector) {
+	res := (*vector.VecInt64)(vec)
+	length := res.GetLength()
+
+	for i := 0; i < length; i++ {
+		j := res.GetValue(i)
+		*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = j
+		c.data = append(c.data, c.elemBuf...)
+	}
+	c.appendMultiSameNullBitmap(true, length)
+	c.length += length
+}
+
+// AppendUint64 appends a uint64 value into this Column.
+func (c *Column) AppendUint64(u uint64) {
 	*(*uint64)(unsafe.Pointer(&c.elemBuf[0])) = u
 	c.finishAppendFixed()
 }
