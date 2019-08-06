@@ -230,6 +230,7 @@ func (s *builtinArithmeticPlusIntSig) evalInt(row chunk.Row) (val int64, isNull 
 	return a + b, false, nil
 }
 
+/*
 func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) (err error) {
 
 	res := (*vector.VecInt64)(vec)
@@ -258,6 +259,38 @@ func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec ve
 		res.SetValue(i, lhs+rhs)
 	}
 
+	return nil
+}
+*/
+
+func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) (err error) {
+
+	res0 := (*vector.VecInt64)(vec)
+	length := res0.GetLength()
+	res1 := vector.NewVecInt64(length)
+
+	err = s.args[0].VectorizedEvalInt(s.ctx, chk, vec)
+	if err != nil {
+		return err
+	}
+
+	vec0 := vector.Vector(res1)
+	err = s.args[1].VectorizedEvalInt(s.ctx, chk, vec0)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < length; i++ {
+		lhs := res0.GetValue(i)
+		rhs := res1.GetValue(i)
+		if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
+			(lhs < 0 && rhs < math.MinInt64-lhs) {
+			return types.ErrOverflow.GenWithStackByArgs(
+				"BIGINT")
+		}
+		res0.AddValue(i, rhs)
+	}
+	vec0 = nil
 	return nil
 }
 

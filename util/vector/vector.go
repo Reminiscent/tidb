@@ -36,3 +36,7 @@ func (b *VecInt64) GetValues() []int64 {
 func (b *VecInt64) SetValue(idx int, value int64) {
 	b.values[idx] = value
 }
+
+func (b *VecInt64) AddValue(idx int, value int64) {
+	b.values[idx] += value
+}
