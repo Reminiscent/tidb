@@ -14,9 +14,6 @@
 package expression
 
 import (
-	"github.com/pingcap/tidb/util/vector"
-	"reflect"
-
 	"github.com/pingcap/check"
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/mysql"
@@ -170,4 +167,4 @@ func (m *MockExpr) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.
 
 func (m *MockExpr) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
 	panic("implement me")
-}
+}*/
