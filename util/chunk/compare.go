@@ -209,7 +209,7 @@ func Compare(row Row, colIdx int, ad *types.Datum) int {
 	}
 }
 
-// LowerBound searches on the non-decreasing column colIdx,
+// LowerBound searches on the non-decreasing Column colIdx,
 // returns the smallest index i such that the value at row i is not less than `d`.
 func (c *Chunk) LowerBound(colIdx int, d *types.Datum) (index int, match bool) {
 	index = sort.Search(c.NumRows(), func(i int) bool {
@@ -222,10 +222,14 @@ func (c *Chunk) LowerBound(colIdx int, d *types.Datum) (index int, match bool) {
 	return
 }
 
-// UpperBound searches on the non-decreasing column colIdx,
+// UpperBound searches on the non-decreasing Column colIdx,
 // returns the smallest index i such that the value at row i is larger than `d`.
 func (c *Chunk) UpperBound(colIdx int, d *types.Datum) int {
 	return sort.Search(c.NumRows(), func(i int) bool {
 		return Compare(c.GetRow(i), colIdx, d) > 0
 	})
+}
+
+func (c *Chunk) SetColumn(colIdx int, col *Column) {
+	c.columns[colIdx] = col
 }

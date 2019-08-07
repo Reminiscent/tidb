@@ -218,7 +218,7 @@ func (r Row) GetDatum(colIdx int, tp *types.FieldType) types.Datum {
 	return d
 }
 
-// IsNull returns if the datum in the chunk.Row is null.
+// isNull returns if the datum in the chunk.Row is null.
 func (r Row) IsNull(colIdx int) bool {
-	return r.c.columns[colIdx].isNull(r.idx)
+	return r.c.columns[colIdx].IsNull(r.idx)
 }

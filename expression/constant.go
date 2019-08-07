@@ -62,6 +62,7 @@ func (c *Constant) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.
 }
 
 func (c *Constant) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error { // todo
+	fmt.Println(chk)
 	res := (*vector.VecInt64)(vec)
 	length := chk.GetColumnLength(0)
 	for i := 0; i < length; i++ {
@@ -69,6 +70,13 @@ func (c *Constant) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, v
 		res.SetValue(i, value)
 	}
 	return nil
+}
+
+func (c *Constant) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk) (*chunk.Column, error) {
+	fmt.Println(chk)
+	col := chunk.NewColumn(types.NewFieldType(mysql.TypeLonglong), chk.GetColumnLength(0))
+	col.SetInt64Values(c.Value.GetInt64())
+	return col, nil
 }
 
 // String implements fmt.Stringer interface.

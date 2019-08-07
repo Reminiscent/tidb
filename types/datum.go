@@ -121,7 +121,7 @@ func (d *Datum) SetLength(l int) {
 	d.length = uint32(l)
 }
 
-// IsNull checks if datum is null.
+// isNull checks if datum is null.
 func (d *Datum) IsNull() bool {
 	return d.k == KindNull
 }

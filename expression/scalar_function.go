@@ -249,6 +249,10 @@ func (sf *ScalarFunction) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.C
 	return sf.Function.vectorizedEvalInt(chk, vec)
 }
 
+func (sf *ScalarFunction) ColEvalInt(_ sessionctx.Context, chk *chunk.Chunk) (*chunk.Column, error) {
+	return sf.Function.colEvalInt(chk)
+}
+
 // EvalReal implements Expression interface.
 func (sf *ScalarFunction) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, bool, error) {
 	return sf.Function.evalReal(row)

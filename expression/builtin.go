@@ -38,6 +38,10 @@ type baseBuiltinFunc struct {
 	pbCode tipb.ScalarFuncSig
 }
 
+func (b *baseBuiltinFunc) colEvalInt(chk *chunk.Chunk) (*chunk.Column, error) {
+	panic("implement me")
+}
+
 func (b *baseBuiltinFunc) PbCode() tipb.ScalarFuncSig {
 	return b.pbCode
 }
@@ -267,6 +271,9 @@ type builtinFunc interface {
 	evalInt(row chunk.Row) (val int64, isNull bool, err error)
 	// vectorizedEvalInt evaluates a vector of int results of builtinFunc by given chunk.
 	vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) error
+
+	colEvalInt(chk *chunk.Chunk) (*chunk.Column, error)
+
 	// evalReal evaluates real representation of builtinFunc by given row.
 	evalReal(row chunk.Row) (val float64, isNull bool, err error)
 	// evalString evaluates string representation of builtinFunc by given row.

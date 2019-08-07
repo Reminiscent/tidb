@@ -261,6 +261,31 @@ func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec ve
 	return nil
 }
 
+func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk) (*chunk.Column, error) {
+	lhs, err := s.args[0].ColEvalInt(s.ctx, chk)
+	if err != nil {
+		return nil, err
+	}
+	rhs, err := s.args[1].ColEvalInt(s.ctx, chk)
+	if err != nil {
+		return nil, err
+	}
+
+	lhs.MergeNullBitMap(rhs)
+
+	length := lhs.GetLength()
+	for i := 0; i < length; i++ {
+		if !lhs.IsNull(i) {
+			l, r := lhs.GetInt64(i), rhs.GetInt64(i)
+			if (l > 0 && r > math.MaxInt64-l) || (l < 0 && r < math.MinInt64-l) {
+				return nil, types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%v + %v)", l, r))
+			}
+			lhs.SetInt64(i, l+r)
+		}
+	}
+	return lhs, nil
+}
+
 type builtinArithmeticPlusDecimalSig struct {
 	baseBuiltinFunc
 }

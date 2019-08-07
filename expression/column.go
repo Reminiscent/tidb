@@ -240,6 +240,10 @@ func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, v
 	return nil
 }
 
+func (col *Column) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk) (*chunk.Column, error) {
+	return chk.GetColumn(col.Index).CopyConstruct(), nil
+}
+
 // EvalReal returns real representation of Column.
 func (col *Column) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, bool, error) {
 	if row.IsNull(col.Index) {
