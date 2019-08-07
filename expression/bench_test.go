@@ -192,7 +192,7 @@ func BenchmarkScalarFunctionClone(b *testing.B) {
 }
 */
 
-///*
+/*
 func BenchmarkScalarFuncPlus(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
