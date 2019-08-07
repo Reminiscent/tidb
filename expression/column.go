@@ -209,14 +209,14 @@ func (col *Column) Eval(row chunk.Row) (types.Datum, error) {
 }
 
 // VectorizedEval implements Expression interface.
-func (col *Column) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error) {
-	/* todo
-	length := chk.GetColumnLength(0)
-	d := make([]types.Datum, 0, length)
-	return row.GetDatum(col.Index, col.RetType), nil
-	*/
-	panic("implement me")
-}
+//func (col *Column) VectorizedEval(chk *chunk.Chunk, vec vector.Vec) ([]types.Datum, error) {
+//	/* todo
+//	length := chk.GetColumnLength(0)
+//	d := make([]types.Datum, 0, length)
+//	return row.GetDatum(col.Index, col.RetType), nil
+//	*/
+//	panic("implement me")
+//}
 
 // EvalInt returns int representation of Column.
 func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, error) {
@@ -235,8 +235,8 @@ func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, 
 }
 
 // VectorizedEvalInt set a vector of int representation of Column.
-func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
-	chk.SetVectorIntFromColumn(col.Index, vec)
+func (col *Column) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vec) error {
+	chk.CopyToVecInt64(col.Index, vec.(*vector.VecInt64))
 	return nil
 }
 

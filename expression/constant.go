@@ -57,16 +57,15 @@ type Constant struct {
 	hashcode     []byte
 }
 
-func (c *Constant) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error) { // todo
+func (c *Constant) VectorizedEval(chk *chunk.Chunk, vec vector.Vec) ([]types.Datum, error) { // todo
 	panic("implement me")
 }
 
-func (c *Constant) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error { // todo
-	res := (*vector.VecInt64)(vec)
-	length := chk.GetColumnLength(0)
+func (c *Constant) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vec) error { // todo
+	length := chk.GetColumnLength()
 	for i := 0; i < length; i++ {
 		value := c.Value.GetInt64()
-		res.SetValue(i, value)
+		vec.Set(i, value, true)
 	}
 	return nil
 }

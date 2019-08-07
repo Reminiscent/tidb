@@ -95,12 +95,14 @@ func (c *column) copyConstruct() *column {
 	return newCol
 }
 
-// SetVectorInt copy the value from the column.data to vector.VecInt64
-func (c *column) SetVectorInt(length int, vec vector.Vector) {
-	res := (*vector.VecInt64)(vec)
-	for i := 0; i < length; i++ {
-		value := *(*int64)(unsafe.Pointer(&c.data[i*8]))
-		res.SetValue(i, value)
+func (c *column) CopyToVecInt64(vec *vector.VecInt64) {
+	for i := 0; i < c.length; i++ {
+		if !c.isNull(i) {
+			value := *(*int64)(unsafe.Pointer(&c.data[i*8]))
+			vec.Set(i, value, true)
+		} else {
+			vec.Set(i, 0, false)
+		}
 	}
 }
 
@@ -165,16 +167,14 @@ func (c *column) appendInt64(i int64) {
 }
 
 // AppendVectorInt64 appends an vector of int64 value into this Column.
-func (c *column) AppendVectorInt64(vec vector.Vector) {
-	res := (*vector.VecInt64)(vec)
-	length := res.GetLength()
-
+func (c *column) AppendVectorInt64(vec *vector.VecInt64) {
+	length := vec.Length()
 	for i := 0; i < length; i++ {
-		j := res.GetValue(i)
-		*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = j
+		value, exists := vec.Get(i)
+		*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = value.(int64)
 		c.data = append(c.data, c.elemBuf...)
+		c.appendNullBitmap(!exists)
 	}
-	c.appendMultiSameNullBitmap(true, length)
 	c.length += length
 }
 

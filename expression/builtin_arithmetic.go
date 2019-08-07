@@ -15,16 +15,15 @@ package expression
 
 import (
 	"fmt"
-	"github.com/pingcap/tidb/util/vector"
-	"math"
-
 	"github.com/cznic/mathutil"
 	"github.com/pingcap/parser/mysql"
 	"github.com/pingcap/parser/terror"
 	"github.com/pingcap/tidb/sessionctx"
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/util/chunk"
+	"github.com/pingcap/tidb/util/vector"
 	"github.com/pingcap/tipb/go-tipb"
+	"math"
 )
 
 var (
@@ -199,65 +198,69 @@ func (s *builtinArithmeticPlusIntSig) evalInt(row chunk.Row) (val int64, isNull 
 		return 0, isNull, err
 	}
 
-	isLHSUnsigned := mysql.HasUnsignedFlag(s.args[0].GetType().Flag)
-	isRHSUnsigned := mysql.HasUnsignedFlag(s.args[1].GetType().Flag)
-
-	switch {
-	case isLHSUnsigned && isRHSUnsigned:
-		if uint64(a) > math.MaxUint64-uint64(b) {
-			return 0, true, types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
-		}
-	case isLHSUnsigned && !isRHSUnsigned:
-		if b < 0 && uint64(-b) > uint64(a) {
-			return 0, true, types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
-		}
-		if b > 0 && uint64(a) > math.MaxUint64-uint64(b) {
-			return 0, true, types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
-		}
-	case !isLHSUnsigned && isRHSUnsigned:
-		if a < 0 && uint64(-a) > uint64(b) {
-			return 0, true, types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
-		}
-		if a > 0 && uint64(b) > math.MaxUint64-uint64(a) {
-			return 0, true, types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
-		}
-	case !isLHSUnsigned && !isRHSUnsigned:
-		if (a > 0 && b > math.MaxInt64-a) || (a < 0 && b < math.MinInt64-a) {
-			return 0, true, types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
-		}
+	err = s.handleOverflow(
+		a, b,
+		mysql.HasUnsignedFlag(s.args[0].GetType().Flag),
+		mysql.HasUnsignedFlag(s.args[1].GetType().Flag))
+	if err != nil {
+		return 0, true, err
 	}
 
 	return a + b, false, nil
 }
 
-func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) (err error) {
+func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vec) (err error) {
+	length := chk.GetColumnLength()
+	buf := vector.NewVecInt64(length)
 
-	res := (*vector.VecInt64)(vec)
-	length := res.GetLength()
-
-	err = s.args[0].VectorizedEvalInt(s.ctx, chk, vec)
-	if err != nil {
+	if err = s.args[0].VectorizedEvalInt(s.ctx, chk, buf); err != nil {
 		return err
 	}
-	var tmp [1024]int64
-	copy(tmp[0:length], res.GetValues())
-
-	err = s.args[1].VectorizedEvalInt(s.ctx, chk, vec)
-	if err != nil {
+	if err = s.args[1].VectorizedEvalInt(s.ctx, chk, vec); err != nil {
 		return err
 	}
 
 	for i := 0; i < length; i++ {
-		lhs := tmp[i]
-		rhs := res.GetValue(i)
-		if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
-			(lhs < 0 && rhs < math.MinInt64-lhs) {
-			return types.ErrOverflow.GenWithStackByArgs(
-				"BIGINT")
+		lhs, lhsExists := buf.Get(i)
+		rhs, rhsExists := vec.Get(i)
+		if lhsExists && rhsExists {
+			a, b := lhs.(int64), rhs.(int64)
+			if err = s.handleOverflow(a, b, false, false); err != nil {
+				return err
+			}
+			vec.Set(i, a+b, true)
+		} else {
+			vec.Set(i, 0, false)
 		}
-		res.SetValue(i, lhs+rhs)
 	}
+	return nil
+}
 
+func (s *builtinArithmeticPlusIntSig) handleOverflow(lhs, rhs int64, isLHSUnsigned, isRHSUnsigned bool) error {
+	switch {
+	case isLHSUnsigned && isRHSUnsigned:
+		if uint64(lhs) > math.MaxUint64-uint64(rhs) {
+			return types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
+		}
+	case isLHSUnsigned && !isRHSUnsigned:
+		if rhs < 0 && uint64(-rhs) > uint64(lhs) {
+			return types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
+		}
+		if rhs > 0 && uint64(lhs) > math.MaxUint64-uint64(rhs) {
+			return types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
+		}
+	case !isLHSUnsigned && isRHSUnsigned:
+		if lhs < 0 && uint64(-lhs) > uint64(rhs) {
+			return types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
+		}
+		if lhs > 0 && uint64(rhs) > math.MaxUint64-uint64(lhs) {
+			return types.ErrOverflow.GenWithStackByArgs("BIGINT UNSIGNED", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
+		}
+	case !isLHSUnsigned && !isRHSUnsigned:
+		if (lhs > 0 && rhs > math.MaxInt64-lhs) || (lhs < 0 && rhs < math.MinInt64-lhs) {
+			return types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%s + %s)", s.args[0].String(), s.args[1].String()))
+		}
+	}
 	return nil
 }
 

@@ -121,8 +121,8 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 	return
 }
 
-func (c *Chunk) GetColumnLength(idx int) int {
-	return c.columns[idx].GetLength()
+func (c *Chunk) GetColumnLength() int {
+	return c.columns[0].GetLength()
 }
 
 // newFixedLenColumn creates a fixed length column with elemLen and initial data capacity.
@@ -464,10 +464,9 @@ func (c *Chunk) TruncateTo(numRows int) {
 	c.numVirtualRows = numRows
 }
 
-// SetVectorIntFromColumn get the value from columns[idx] and then set the vector.Vector
-func (c *Chunk) SetVectorIntFromColumn(idx int, vec vector.Vector) {
-	length := c.columns[idx].GetLength()
-	c.columns[idx].SetVectorInt(length, vec)
+// CopyToVecInt64 get the value from columns[idx] and then set the vector.Vector
+func (c *Chunk) CopyToVecInt64(idx int, vec *vector.VecInt64) {
+	c.columns[idx].CopyToVecInt64(vec)
 }
 
 // AppendNull appends a null value to the chunk.
@@ -481,7 +480,7 @@ func (c *Chunk) AppendInt64(colIdx int, i int64) {
 }
 
 // AppendVectorInt64 appends a vector of int64 value to the chunk.
-func (c *Chunk) AppendVectorInt64(colIdx int, vec vector.Vector) {
+func (c *Chunk) AppendVectorInt64(colIdx int, vec *vector.VecInt64) {
 	c.columns[colIdx].AppendVectorInt64(vec)
 }
 

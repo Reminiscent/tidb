@@ -167,7 +167,7 @@ func (b *baseBuiltinFunc) evalInt(row chunk.Row) (int64, bool, error) {
 	panic("baseBuiltinFunc.evalInt() should never be called.")
 }
 
-func (b *baseBuiltinFunc) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) error {
+func (b *baseBuiltinFunc) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vec) error {
 	panic("baseBuiltinFunc.vectorizedEvalInt() should never be called.")
 }
 
@@ -266,7 +266,7 @@ type builtinFunc interface {
 	// evalInt evaluates int result of builtinFunc by given row.
 	evalInt(row chunk.Row) (val int64, isNull bool, err error)
 	// vectorizedEvalInt evaluates a vector of int results of builtinFunc by given chunk.
-	vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) error
+	vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vec) error
 	// evalReal evaluates real representation of builtinFunc by given row.
 	evalReal(row chunk.Row) (val float64, isNull bool, err error)
 	// evalString evaluates string representation of builtinFunc by given row.

@@ -48,13 +48,13 @@ type Expression interface {
 	Eval(row chunk.Row) (types.Datum, error)
 
 	// VectorizedEval evaluates an expression through a chunk.
-	VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error)
+	//VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error)
 
 	// EvalInt returns the int64 representation of expression.
 	EvalInt(ctx sessionctx.Context, row chunk.Row) (val int64, isNull bool, err error)
 
 	// EvalInt returns the vector of int64 representation of expression.
-	VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error
+	VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vec) error
 
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)

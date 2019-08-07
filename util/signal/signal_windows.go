@@ -15,6 +15,8 @@
 package signal
 
 import (
+	"context"
+	"github.com/pingcap/tidb/util/logutil"
 	"os"
 	"os/signal"
 	"syscall"
