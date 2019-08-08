@@ -240,6 +240,12 @@ func (col *Column) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, boo
 	return row.GetFloat64(col.Index), false, nil
 }
 
+// EvalReal returns a vector of real representation of Column.
+func (col *Column) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	out.CopyFrom(chk.GetColumn(col.Index))
+	return nil
+}
+
 // EvalString returns string representation of Column.
 func (col *Column) EvalString(ctx sessionctx.Context, row chunk.Row) (string, bool, error) {
 	if row.IsNull(col.Index) {

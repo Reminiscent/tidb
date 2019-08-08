@@ -540,6 +540,34 @@ func (s *builtinArithmeticMultiplyRealSig) evalReal(row chunk.Row) (float64, boo
 	return result, false, nil
 }
 
+func (s *builtinArithmeticMultiplyRealSig) colEvalReal(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
+	err = s.args[0].ColEvalReal(s.ctx, chk, lhs)
+	if err != nil {
+		return err
+	}
+
+	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeDouble), lhs.GetLength())
+	err = s.args[1].ColEvalReal(s.ctx, chk, rhs)
+	if err != nil {
+		return err
+	}
+
+	lhs.MergeNullBitMap(rhs)
+
+	length := lhs.GetLength()
+	for i := 0; i < length; i++ {
+		if !lhs.IsNull(i) {
+			l, r := lhs.GetFloat64(i), rhs.GetFloat64(i)
+			result := l * r
+			if math.IsInf(result, 0) {
+				return types.ErrOverflow.GenWithStackByArgs("DOUBLE", fmt.Sprintf("(%v * %v)", l, r))
+			}
+			lhs.SetFloat64(i, result)
+		}
+	}
+	return nil
+}
+
 func (s *builtinArithmeticMultiplyDecimalSig) evalDecimal(row chunk.Row) (*types.MyDecimal, bool, error) {
 	a, isNull, err := s.args[0].EvalDecimal(s.ctx, row)
 	if isNull || err != nil {

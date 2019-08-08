@@ -239,6 +239,11 @@ func (sf *ScalarFunction) EvalReal(ctx sessionctx.Context, row chunk.Row) (float
 	return sf.Function.evalReal(row)
 }
 
+// ColEvalReal implements Expression interface.
+func (sf *ScalarFunction) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	return sf.Function.colEvalReal(chk, out)
+}
+
 // EvalDecimal implements Expression interface.
 func (sf *ScalarFunction) EvalDecimal(ctx sessionctx.Context, row chunk.Row) (*types.MyDecimal, bool, error) {
 	return sf.Function.evalDecimal(row)

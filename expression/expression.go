@@ -55,6 +55,9 @@ type Expression interface {
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)
 
+	// ColEvalReal returns the float64 representation of expression.
+	ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
+
 	// EvalString returns the string representation of expression.
 	EvalString(ctx sessionctx.Context, row chunk.Row) (val string, isNull bool, err error)
 

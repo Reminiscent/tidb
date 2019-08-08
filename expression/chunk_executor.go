@@ -111,8 +111,9 @@ func evalOneColumn(ctx sessionctx.Context, expr Expression, iterator *chunk.Iter
 func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
 	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
 	case types.ETInt:
-		//err = VectorizedExecuteToInt(ctx, expr, fieldType, input, output, colID)
 		err = ColExecuteToInt(ctx, expr, fieldType, input, output, colID)
+	case types.ETReal:
+		err = ColExecuteToReal(ctx, expr, fieldType, input, output, colID)
 	}
 	return err
 }
@@ -182,6 +183,16 @@ func executeToReal(ctx sessionctx.Context, expr Expression, fieldType *types.Fie
 		return nil
 	}
 	output.AppendFloat64(colID, res)
+	return nil
+}
+
+func ColExecuteToReal(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
+	col := chunk.NewColumn(types.NewFieldType(mysql.TypeDouble), input.GetColumnLength()) // todo: solve mysql.TypeFloat
+	err := expr.ColEvalReal(ctx, input, col)
+	if err != nil {
+		return err
+	}
+	output.SetColumn(colID, col)
 	return nil
 }
 
