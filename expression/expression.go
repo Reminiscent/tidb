@@ -56,7 +56,7 @@ type Expression interface {
 	// EvalInt returns the vector of int64 representation of expression.
 	VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error
 
-	ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk) (*chunk.Column, error)
+	ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)

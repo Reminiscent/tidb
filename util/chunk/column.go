@@ -124,6 +124,38 @@ func (c *Column) CopyConstruct() *Column {
 	return newCol
 }
 
+func (c *Column) CopyFrom(that *Column) {
+	c.length, c.nullCount = that.length, that.nullCount
+
+	c.nullBitmap = c.nullBitmap[:0]
+	c.nullBitmap = append(c.nullBitmap, that.nullBitmap...)
+
+	c.data = c.data[:0]
+	c.data = append(c.data, that.data...)
+
+	c.offsets = c.offsets[:0]
+	c.offsets = append(c.offsets, that.offsets...)
+
+	c.elemBuf = c.elemBuf[:0]
+	c.elemBuf = append(c.elemBuf, that.elemBuf...)
+}
+
+func (c *Column) FillNulls(width int) {
+	c.elemBuf = c.elemBuf[:0]
+	for i := 0; i < width; i++ {
+		c.elemBuf = append(c.elemBuf, 0)
+	}
+
+	cnt := cap(c.data) / width
+	c.data = c.data[:0]
+	for i := 0; i < cnt; i++ {
+		c.data = append(c.data, c.elemBuf...)
+	}
+
+	c.nullBitmap = c.nullBitmap[:0]
+	c.appendMultiSameNullBitmap(false, cnt)
+}
+
 // SetVectorInt copy the value from the Column.data to vector.VecInt64
 func (c *Column) SetVectorInt(length int, vec vector.Vector) {
 	res := (*vector.VecInt64)(vec)

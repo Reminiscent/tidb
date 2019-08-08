@@ -227,7 +227,7 @@ func (sf *ScalarFunction) Eval(row chunk.Row) (d types.Datum, err error) {
 
 // VecotrizedEval implements Expression interface
 func (sf *ScalarFunction) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) (d []types.Datum, err error) {
-	length := chk.GetColumnLength(0)
+	length := chk.GetColumnLength()
 	d = make([]types.Datum, 0, length)
 	switch evalType := sf.GetType().EvalType(); evalType {
 	case types.ETInt:
@@ -249,8 +249,8 @@ func (sf *ScalarFunction) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.C
 	return sf.Function.vectorizedEvalInt(chk, vec)
 }
 
-func (sf *ScalarFunction) ColEvalInt(_ sessionctx.Context, chk *chunk.Chunk) (*chunk.Column, error) {
-	return sf.Function.colEvalInt(chk)
+func (sf *ScalarFunction) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	return sf.Function.colEvalInt(chk, out)
 }
 
 // EvalReal implements Expression interface.

@@ -160,7 +160,7 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 }
 
 func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	length := input.GetColumnLength(0)
+	length := input.GetColumnLength()
 	vec := vector.NewVecInt64(length)
 	err := expr.VectorizedEvalInt(ctx, input, vector.Vector(vec))
 	if err != nil {
@@ -171,7 +171,8 @@ func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *
 }
 
 func ColExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	col, err := expr.ColEvalInt(ctx, input)
+	col := chunk.NewColumn(types.NewFieldType(mysql.TypeLonglong), input.GetColumnLength())
+	err := expr.ColEvalInt(ctx, input, col)
 	if err != nil {
 		return err
 	}

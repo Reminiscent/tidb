@@ -261,14 +261,16 @@ func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec ve
 	return nil
 }
 
-func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk) (*chunk.Column, error) {
-	lhs, err := s.args[0].ColEvalInt(s.ctx, chk)
+func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
+	err = s.args[0].ColEvalInt(s.ctx, chk, lhs)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	rhs, err := s.args[1].ColEvalInt(s.ctx, chk)
+
+	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeLonglong), lhs.GetLength())
+	err = s.args[1].ColEvalInt(s.ctx, chk, rhs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	lhs.MergeNullBitMap(rhs)
@@ -278,12 +280,12 @@ func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk) (*chunk.Colum
 		if !lhs.IsNull(i) {
 			l, r := lhs.GetInt64(i), rhs.GetInt64(i)
 			if (l > 0 && r > math.MaxInt64-l) || (l < 0 && r < math.MinInt64-l) {
-				return nil, types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%v + %v)", l, r))
+				return types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%v + %v)", l, r))
 			}
 			lhs.SetInt64(i, l+r)
 		}
 	}
-	return lhs, nil
+	return nil
 }
 
 type builtinArithmeticPlusDecimalSig struct {

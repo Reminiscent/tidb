@@ -121,8 +121,8 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 	return
 }
 
-func (c *Chunk) GetColumnLength(idx int) int {
-	return c.columns[idx].GetLength()
+func (c *Chunk) GetColumnLength() int {
+	return c.columns[0].GetLength()
 }
 
 // newFixedLenColumn creates a fixed length Column with elemLen and initial data capacity.
