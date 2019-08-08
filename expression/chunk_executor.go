@@ -19,7 +19,6 @@ import (
 	"github.com/pingcap/tidb/sessionctx"
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/util/chunk"
-	"github.com/pingcap/tidb/util/vector"
 	"strconv"
 )
 
@@ -156,17 +155,6 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 		return nil
 	}
 	output.AppendInt64(colID, res)
-	return nil
-}
-
-func VectorizedExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	length := input.GetColumnLength()
-	vec := vector.NewVecInt64(length)
-	err := expr.VectorizedEvalInt(ctx, input, vector.Vector(vec))
-	if err != nil {
-		return err
-	}
-	output.AppendVectorInt64(colID, vector.Vector(vec))
 	return nil
 }
 

@@ -25,7 +25,6 @@ import (
 	"github.com/pingcap/tidb/util/chunk"
 	"github.com/pingcap/tidb/util/codec"
 	"github.com/pingcap/tidb/util/logutil"
-	"github.com/pingcap/tidb/util/vector"
 	"go.uber.org/zap"
 )
 
@@ -55,21 +54,6 @@ type Constant struct {
 	RetType      *types.FieldType
 	DeferredExpr Expression // parameter getter expression
 	hashcode     []byte
-}
-
-func (c *Constant) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) ([]types.Datum, error) { // todo
-	panic("implement me")
-}
-
-func (c *Constant) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error { // todo
-	fmt.Println(chk)
-	res := (*vector.VecInt64)(vec)
-	length := chk.GetColumnLength()
-	for i := 0; i < length; i++ {
-		value := c.Value.GetInt64()
-		res.SetValue(i, value)
-	}
-	return nil
 }
 
 func (c *Constant) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {

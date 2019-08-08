@@ -16,7 +16,6 @@ package expression
 import (
 	"bytes"
 	"fmt"
-	"github.com/pingcap/tidb/util/vector"
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/parser/ast"
@@ -225,28 +224,9 @@ func (sf *ScalarFunction) Eval(row chunk.Row) (d types.Datum, err error) {
 	return
 }
 
-// VecotrizedEval implements Expression interface
-func (sf *ScalarFunction) VectorizedEval(chk *chunk.Chunk, vec vector.Vector) (d []types.Datum, err error) {
-	length := chk.GetColumnLength()
-	d = make([]types.Datum, 0, length)
-	switch evalType := sf.GetType().EvalType(); evalType {
-	case types.ETInt:
-		err = sf.VectorizedEvalInt(sf.GetCtx(), chk, vec)
-		res := (*vector.VecInt64)(vec)
-		for i := 0; i < length; i++ {
-			d[i].SetInt64(res.GetValue(i))
-		}
-	}
-	return
-}
-
 // EvalInt implements Expression interface.
 func (sf *ScalarFunction) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, error) {
 	return sf.Function.evalInt(row)
-}
-
-func (sf *ScalarFunction) VectorizedEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, vec vector.Vector) error {
-	return sf.Function.vectorizedEvalInt(chk, vec)
 }
 
 func (sf *ScalarFunction) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {

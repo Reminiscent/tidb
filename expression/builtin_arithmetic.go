@@ -15,7 +15,6 @@ package expression
 
 import (
 	"fmt"
-	"github.com/pingcap/tidb/util/vector"
 	"math"
 
 	"github.com/cznic/mathutil"
@@ -228,37 +227,6 @@ func (s *builtinArithmeticPlusIntSig) evalInt(row chunk.Row) (val int64, isNull 
 	}
 
 	return a + b, false, nil
-}
-
-func (s *builtinArithmeticPlusIntSig) vectorizedEvalInt(chk *chunk.Chunk, vec vector.Vector) (err error) {
-
-	res := (*vector.VecInt64)(vec)
-	length := res.GetLength()
-
-	err = s.args[0].VectorizedEvalInt(s.ctx, chk, vec)
-	if err != nil {
-		return err
-	}
-	var tmp [1024]int64
-	copy(tmp[0:length], res.GetValues())
-
-	err = s.args[1].VectorizedEvalInt(s.ctx, chk, vec)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < length; i++ {
-		lhs := tmp[i]
-		rhs := res.GetValue(i)
-		if (lhs > 0 && rhs > math.MaxInt64-lhs) ||
-			(lhs < 0 && rhs < math.MinInt64-lhs) {
-			return types.ErrOverflow.GenWithStackByArgs(
-				"BIGINT")
-		}
-		res.SetValue(i, lhs+rhs)
-	}
-
-	return nil
 }
 
 func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
