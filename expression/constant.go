@@ -56,6 +56,7 @@ type Constant struct {
 	hashcode     []byte
 }
 
+// ColEvalInt returns a column of int representation of Constant.
 func (c *Constant) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	value, isNull, err := c.EvalInt(ctx, chunk.Row{})
 	if err != nil {

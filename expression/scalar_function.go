@@ -229,6 +229,7 @@ func (sf *ScalarFunction) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64,
 	return sf.Function.evalInt(row)
 }
 
+// ColEvalInt implements Expression interface.
 func (sf *ScalarFunction) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	return sf.Function.colEvalInt(chk, out)
 }

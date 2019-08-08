@@ -223,6 +223,7 @@ func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, 
 	return row.GetInt64(col.Index), false, nil
 }
 
+// ColEvalInt returns a column of int representation of Column.
 func (col *Column) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	out.CopyFrom(chk.GetColumn(col.Index))
 	return nil
