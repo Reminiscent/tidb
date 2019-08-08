@@ -62,9 +62,9 @@ func (c *Constant) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chu
 		return err
 	}
 	if isNull {
-		out.FillNulls(8)
+		out.AppendNull()
 	} else {
-		out.SetInt64Values(value)
+		out.AppendInt64(value)
 	}
 	return nil
 }

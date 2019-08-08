@@ -159,13 +159,8 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 }
 
 func ColExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	col := chunk.NewColumn(types.NewFieldType(mysql.TypeLonglong), input.GetColumnLength())
-	err := expr.ColEvalInt(ctx, input, col)
-	if err != nil {
-		return err
-	}
-	output.SetColumn(colID, col)
-	return nil
+	outCol := output.GetColumn(colID)
+	return expr.ColEvalInt(ctx, input, outCol)
 }
 
 func executeToReal(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, row chunk.Row, output *chunk.Chunk, colID int) error {

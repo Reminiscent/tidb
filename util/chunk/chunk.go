@@ -121,7 +121,10 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 }
 
 func (c *Chunk) GetColumnLength() int {
-	return c.columns[0].GetLength()
+	if len(c.columns) > 0 {
+		return c.columns[0].length
+	}
+	return 0
 }
 
 // newFixedLenColumn creates a fixed length Column with elemLen and initial data capacity.
@@ -465,12 +468,12 @@ func (c *Chunk) TruncateTo(numRows int) {
 
 // AppendNull appends a null value to the chunk.
 func (c *Chunk) AppendNull(colIdx int) {
-	c.columns[colIdx].appendNull()
+	c.columns[colIdx].AppendNull()
 }
 
 // AppendInt64 appends a int64 value to the chunk.
 func (c *Chunk) AppendInt64(colIdx int, i int64) {
-	c.columns[colIdx].appendInt64(i)
+	c.columns[colIdx].AppendInt64(i)
 }
 
 // AppendUint64 appends a uint64 value to the chunk.
