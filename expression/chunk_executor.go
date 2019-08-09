@@ -63,17 +63,6 @@ func VectorizedExecute(ctx sessionctx.Context, exprs []Expression, iterator *chu
 	return nil
 }
 
-// RealVectorizedExecute evaluates a list of expressions column by column and append their results to "output" Chunk.
-func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *chunk.Chunk, output *chunk.Chunk) error {
-	for colID, expr := range exprs {
-		err := VectorizedEvalOneColumn(ctx, expr, input, output, colID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func evalOneColumn(ctx sessionctx.Context, expr Expression, iterator *chunk.Iterator4Chunk, output *chunk.Chunk, colID int) (err error) {
 	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
 	case types.ETInt:
@@ -104,16 +93,6 @@ func evalOneColumn(ctx sessionctx.Context, expr Expression, iterator *chunk.Iter
 		for row := iterator.Begin(); err == nil && row != iterator.End(); row = iterator.Next() {
 			err = executeToString(ctx, expr, fieldType, row, output, colID)
 		}
-	}
-	return err
-}
-
-func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
-	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
-	case types.ETInt:
-		err = ColExecuteToInt(ctx, expr, fieldType, input, output, colID)
-	case types.ETReal:
-		err = ColExecuteToReal(ctx, expr, fieldType, input, output, colID)
 	}
 	return err
 }
@@ -159,11 +138,6 @@ func executeToInt(ctx sessionctx.Context, expr Expression, fieldType *types.Fiel
 	return nil
 }
 
-func ColExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	outCol := output.GetColumn(colID)
-	return expr.ColEvalInt(ctx, input, outCol)
-}
-
 func executeToReal(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, row chunk.Row, output *chunk.Chunk, colID int) error {
 	res, isNull, err := expr.EvalReal(ctx, row)
 	if err != nil {
@@ -178,16 +152,6 @@ func executeToReal(ctx sessionctx.Context, expr Expression, fieldType *types.Fie
 		return nil
 	}
 	output.AppendFloat64(colID, res)
-	return nil
-}
-
-func ColExecuteToReal(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	col := chunk.NewColumn(types.NewFieldType(mysql.TypeDouble), input.GetColumnLength()) // todo: solve mysql.TypeFloat
-	err := expr.ColEvalReal(ctx, input, col)
-	if err != nil {
-		return err
-	}
-	output.SetColumn(colID, col)
 	return nil
 }
 
@@ -296,4 +260,35 @@ func VectorizedFilter(ctx sessionctx.Context, filters []Expression, iterator *ch
 		}
 	}
 	return selected, nil
+}
+
+// RealVectorizedExecute evaluates a list of expressions column by column and append their results to "output" Chunk.
+func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *chunk.Chunk, output *chunk.Chunk) error {
+	for colID, expr := range exprs {
+		err := VectorizedEvalOneColumn(ctx, expr, input, output, colID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
+	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
+	case types.ETInt:
+		err = ColExecuteToInt(ctx, expr, fieldType, input, output, colID)
+	case types.ETReal:
+		err = ColExecuteToReal(ctx, expr, fieldType, input, output, colID)
+	}
+	return err
+}
+
+func ColExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
+	outCol := output.GetColumn(colID)
+	return expr.ColEvalInt(ctx, input, outCol)
+}
+
+func ColExecuteToReal(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
+	outCol := output.GetColumn(colID)
+	return expr.ColEvalReal(ctx, input, outCol)
 }

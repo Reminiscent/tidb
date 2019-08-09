@@ -77,21 +77,6 @@ func NewColumn(ft *types.FieldType, cap int) *Column {
 	return newFixedLenColumn(typeSize, cap)
 }
 
-//func (c *Column) SetInt64Values(val int64) {
-//	c.reset()
-//
-//	cnt := cap(c.data) / 8
-//	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = val
-//	for i := 0; i < cnt; i++ {
-//		c.data = append(c.data, c.elemBuf...)
-//	}
-//	for i := 0; i < cnt/8; i++ {
-//		c.nullBitmap = append(c.nullBitmap, byte(255))
-//	}
-//	c.nullBitmap = append(c.nullBitmap, byte(255)>>uint(8-cnt%8))
-//	c.length = cnt
-//}
-
 func (c1 *Column) MergeNullBitMap(c2 *Column) {
 	for i := range c1.nullBitmap {
 		c1.nullBitmap[i] = c1.nullBitmap[i] & c2.nullBitmap[i]
@@ -146,22 +131,6 @@ func (c *Column) CopyFrom(that *Column) {
 	c.elemBuf = c.elemBuf[:0]
 	c.elemBuf = append(c.elemBuf, that.elemBuf...)
 }
-
-//func (c *Column) FillNulls(width int) {
-//	c.elemBuf = c.elemBuf[:0]
-//	for i := 0; i < width; i++ {
-//		c.elemBuf = append(c.elemBuf, 0)
-//	}
-//
-//	cnt := cap(c.data) / width
-//	c.data = c.data[:0]
-//	for i := 0; i < cnt; i++ {
-//		c.data = append(c.data, c.elemBuf...)
-//	}
-//
-//	c.nullBitmap = c.nullBitmap[:0]
-//	c.appendMultiSameNullBitmap(false, cnt)
-//}
 
 func (c *Column) appendNullBitmap(notNull bool) {
 	idx := c.length >> 3
