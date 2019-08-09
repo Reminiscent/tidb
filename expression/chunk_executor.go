@@ -265,7 +265,7 @@ func VectorizedFilter(ctx sessionctx.Context, filters []Expression, iterator *ch
 // RealVectorizedExecute evaluates a list of expressions column by column and append their results to "output" Chunk.
 func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *chunk.Chunk, output *chunk.Chunk) error {
 	for colID, expr := range exprs {
-		err := VectorizedEvalOneColumn(ctx, expr, input, output, colID)
+		err := vectorizedEvalOneColumn(ctx, expr, input, output, colID)
 		if err != nil {
 			return err
 		}
@@ -273,22 +273,16 @@ func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *ch
 	return nil
 }
 
-func VectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
-	switch fieldType, evalType := expr.GetType(), expr.GetType().EvalType(); evalType {
+func vectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
+	switch evalType := expr.GetType().EvalType(); evalType {
 	case types.ETInt:
-		err = ColExecuteToInt(ctx, expr, fieldType, input, output, colID)
+		err = expr.ColEvalInt(ctx, input, output.GetColumn(colID))
 	case types.ETReal:
-		err = ColExecuteToReal(ctx, expr, fieldType, input, output, colID)
+		err = expr.ColEvalReal(ctx, input, output.GetColumn(colID))
+	default:
+		itr := chunk.NewIterator4Chunk(input)
+		err = evalOneColumn(ctx, expr, itr, output, colID)
+		//err = errors.New(fmt.Sprintf("evaluation to type %v not implemented", evalType))
 	}
 	return err
-}
-
-func ColExecuteToInt(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	outCol := output.GetColumn(colID)
-	return expr.ColEvalInt(ctx, input, outCol)
-}
-
-func ColExecuteToReal(ctx sessionctx.Context, expr Expression, fieldType *types.FieldType, input *chunk.Chunk, output *chunk.Chunk, colID int) error {
-	outCol := output.GetColumn(colID)
-	return expr.ColEvalReal(ctx, input, outCol)
 }

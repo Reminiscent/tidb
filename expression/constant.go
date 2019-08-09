@@ -56,21 +56,34 @@ type Constant struct {
 	hashcode     []byte
 }
 
-// ColEvalReal returns a column of real representation of Constant.
-func (c *Constant) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error { // todo
-	panic("implement me")
-}
-
 // ColEvalInt returns a column of int representation of Constant.
 func (c *Constant) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	value, isNull, err := c.EvalInt(ctx, chunk.Row{})
 	if err != nil {
 		return err
 	}
+
+	cnt := chk.NumRows()
 	if isNull {
-		out.AppendNull()
+		out.FillNulls(cnt, 8)
 	} else {
-		out.AppendInt64(value)
+		out.FillInt64(value, cnt)
+	}
+	return nil
+}
+
+// ColEvalReal returns a column of real representation of Constant.
+func (c *Constant) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error { // todo
+	value, isNull, err := c.EvalReal(ctx, chunk.Row{})
+	if err != nil {
+		return err
+	}
+
+	cnt := chk.NumRows()
+	if isNull {
+		out.FillNulls(cnt, 8)
+	} else {
+		out.FillReal(value, cnt)
 	}
 	return nil
 }

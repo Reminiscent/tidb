@@ -228,3 +228,53 @@ func (c *Column) appendTime(t types.Time) {
 	writeTime(c.elemBuf, t)
 	c.finishAppendFixed()
 }
+
+func (c *Column) FillNulls(cnt, width int) {
+	c.nullCount, c.length = cnt, cnt
+	c.fillSameNullBits(false, cnt)
+	if c.isFixed() {
+		for i := 0; i < width; i++ {
+			c.elemBuf = append(c.elemBuf, 0)
+		}
+		for i := 0; i < cnt; i++ {
+			c.data = append(c.data, c.elemBuf...)
+		}
+	} else {
+		for i := 0; i < cnt; i++ {
+			c.offsets = append(c.offsets, 0)
+		}
+	}
+}
+
+func (c *Column) FillInt64(value int64, cnt int) {
+	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = value
+	c.finishFillFixedValue(cnt)
+}
+
+func (c *Column) FillReal(value float64, cnt int) {
+	*(*float64)(unsafe.Pointer(&c.elemBuf[0])) = value
+	c.finishFillFixedValue(cnt)
+}
+
+func (c *Column) finishFillFixedValue(cnt int) {
+	c.nullCount, c.length = 0, cnt
+	c.fillSameNullBits(true, cnt)
+	for i := 0; i < cnt; i++ {
+		c.data = append(c.data, c.elemBuf...)
+	}
+}
+
+func (c *Column) fillSameNullBits(exists bool, cnt int) {
+	baseSliceLen, remain := (cnt-1)/8, cnt%8
+	if exists {
+		for i := 0; i < baseSliceLen; i++ {
+			c.nullBitmap = append(c.nullBitmap, byte(255))
+		}
+		last := byte(255) >> uint(8-remain)
+		c.nullBitmap = append(c.nullBitmap, last)
+	} else {
+		for i := 0; i <= baseSliceLen; i++ {
+			c.nullBitmap = append(c.nullBitmap, 0)
+		}
+	}
+}

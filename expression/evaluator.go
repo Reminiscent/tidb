@@ -41,11 +41,9 @@ type defaultEvaluator struct {
 }
 
 func (e *defaultEvaluator) run(ctx sessionctx.Context, input, output *chunk.Chunk) error {
-	// iter := chunk.NewIterator4Chunk(input)
 	if e.vectorizable {
 		for i := range e.outputIdxes {
-			// err := evalOneColumn(ctx, e.exprs[i], iter, output, e.outputIdxes[i])
-			err := VectorizedEvalOneColumn(ctx, e.exprs[i], input, output, e.outputIdxes[i])
+			err := vectorizedEvalOneColumn(ctx, e.exprs[i], input, output, e.outputIdxes[i])
 			if err != nil {
 				return err
 			}
