@@ -60,6 +60,14 @@ func (c *Column) SetInt64(index int, x int64) {
 	*(*int64)(unsafe.Pointer(&c.data[index*8])) = x
 }
 
+func (c *Column) GetFloat64(index int) float64 {
+	return *(*float64)(unsafe.Pointer(&c.data[index*8]))
+}
+
+func (c *Column) SetFloat64(index int, x float64) {
+	*(*float64)(unsafe.Pointer(&c.data[index*8])) = x
+}
+
 // NewColumn creates a new Column with the specific length and capacity.
 func NewColumn(ft *types.FieldType, cap int) *Column {
 	typeSize := getFixedLen(ft)

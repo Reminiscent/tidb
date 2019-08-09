@@ -49,10 +49,14 @@ type Expression interface {
 	// EvalInt returns the int64 representation of expression.
 	EvalInt(ctx sessionctx.Context, row chunk.Row) (val int64, isNull bool, err error)
 
+	// ColEvalInt returns a column of int64 representation of expression.
 	ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)
+
+	// ColEvalReal returns the float64 representation of expression.
+	ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalString returns the string representation of expression.
 	EvalString(ctx sessionctx.Context, row chunk.Row) (val string, isNull bool, err error)

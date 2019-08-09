@@ -229,6 +229,7 @@ func (sf *ScalarFunction) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64,
 	return sf.Function.evalInt(row)
 }
 
+// ColEvalInt implements Expression interface.
 func (sf *ScalarFunction) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	return sf.Function.colEvalInt(chk, out)
 }
@@ -236,6 +237,11 @@ func (sf *ScalarFunction) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, o
 // EvalReal implements Expression interface.
 func (sf *ScalarFunction) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, bool, error) {
 	return sf.Function.evalReal(row)
+}
+
+// ColEvalReal implements Expression interface.
+func (sf *ScalarFunction) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	return sf.Function.colEvalReal(chk, out)
 }
 
 // EvalDecimal implements Expression interface.

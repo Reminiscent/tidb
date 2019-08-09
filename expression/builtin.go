@@ -41,6 +41,10 @@ func (b *baseBuiltinFunc) colEvalInt(chk *chunk.Chunk, out *chunk.Column) error 
 	panic("implement me")
 }
 
+func (b *baseBuiltinFunc) colEvalReal(chk *chunk.Chunk, out *chunk.Column) error {
+	panic("implement me")
+}
+
 func (b *baseBuiltinFunc) PbCode() tipb.ScalarFuncSig {
 	return b.pbCode
 }
@@ -264,11 +268,12 @@ func newBaseBuiltinCastFunc(builtinFunc baseBuiltinFunc, inUnion bool) baseBuilt
 type builtinFunc interface {
 	// evalInt evaluates int result of builtinFunc by given row.
 	evalInt(row chunk.Row) (val int64, isNull bool, err error)
-
+	// colEvalInt evaluates int result of builtinFunc by given chunk.
 	colEvalInt(chk *chunk.Chunk, out *chunk.Column) error
-
 	// evalReal evaluates real representation of builtinFunc by given row.
 	evalReal(row chunk.Row) (val float64, isNull bool, err error)
+	// colEvalReal evaluates real representation of builtinFunc by given chunk.
+	colEvalReal(chk *chunk.Chunk, out *chunk.Column) error
 	// evalString evaluates string representation of builtinFunc by given row.
 	evalString(row chunk.Row) (val string, isNull bool, err error)
 	// evalDecimal evaluates decimal representation of builtinFunc by given row.

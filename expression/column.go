@@ -223,6 +223,7 @@ func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, 
 	return row.GetInt64(col.Index), false, nil
 }
 
+// ColEvalInt returns a column of int representation of Column.
 func (col *Column) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	out.CopyFrom(chk.GetColumn(col.Index))
 	return nil
@@ -237,6 +238,12 @@ func (col *Column) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, boo
 		return float64(row.GetFloat32(col.Index)), false, nil
 	}
 	return row.GetFloat64(col.Index), false, nil
+}
+
+// EvalReal returns a vector of real representation of Column.
+func (col *Column) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	out.CopyFrom(chk.GetColumn(col.Index))
+	return nil
 }
 
 // EvalString returns string representation of Column.
