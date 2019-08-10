@@ -229,7 +229,3 @@ func (c *Chunk) UpperBound(colIdx int, d *types.Datum) int {
 		return Compare(c.GetRow(i), colIdx, d) > 0
 	})
 }
-
-func (c *Chunk) SetColumn(colIdx int, col *Column) {
-	c.columns[colIdx] = col
-}

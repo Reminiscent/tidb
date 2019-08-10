@@ -225,7 +225,28 @@ func (col *Column) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64, bool, 
 
 // ColEvalInt returns a column of int representation of Column.
 func (col *Column) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
-	out.CopyFrom(chk.GetColumn(col.Index))
+	in := chk.GetColumn(col.Index)
+
+	if col.GetType().Hybrid() {
+		// Not real integers, we have to handle them one by one
+		stmtCtx := ctx.GetSessionVars().StmtCtx
+		length := in.GetLength()
+		for i := 0; i < length; i++ {
+			if in.IsNull(i) {
+				out.AppendNull()
+			} else {
+				datum := in.GetDatum(i, col.RetType)
+				value, err := datum.ToInt64(stmtCtx)
+				if err != nil {
+					return err
+				}
+				out.AppendInt64(value)
+			}
+		}
+	} else {
+		// Real integers, just copy them
+		out.CopyFrom(in)
+	}
 	return nil
 }
 
@@ -242,7 +263,16 @@ func (col *Column) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, boo
 
 // EvalReal returns a vector of real representation of Column.
 func (col *Column) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
-	out.CopyFrom(chk.GetColumn(col.Index))
+	in := chk.GetColumn(col.Index)
+	if col.GetType().Tp == mysql.TypeFloat {
+		// Convert float32 to float64 one by one
+		length := in.GetLength()
+		for i := 0; i < length; i++ {
+			out.AppendFloat64(in.GetFloat64(i))
+		}
+	} else {
+		out.CopyFrom(in)
+	}
 	return nil
 }
 

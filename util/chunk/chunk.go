@@ -488,7 +488,7 @@ func (c *Chunk) AppendFloat32(colIdx int, f float32) {
 
 // AppendFloat64 appends a float64 value to the chunk.
 func (c *Chunk) AppendFloat64(colIdx int, f float64) {
-	c.columns[colIdx].appendFloat64(f)
+	c.columns[colIdx].AppendFloat64(f)
 }
 
 // AppendString appends a string value to the chunk.
