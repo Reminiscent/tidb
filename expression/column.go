@@ -307,6 +307,12 @@ func (col *Column) EvalDecimal(ctx sessionctx.Context, row chunk.Row) (*types.My
 	return row.GetMyDecimal(col.Index), false, nil
 }
 
+// ColEvalDecimal returns decimal representation of Column.
+func (col *Column) ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	out.CopyFrom(chk.GetColumn(col.Index))
+	return nil
+}
+
 // EvalTime returns DATE/DATETIME/TIMESTAMP representation of Column.
 func (col *Column) EvalTime(ctx sessionctx.Context, row chunk.Row) (types.Time, bool, error) {
 	if row.IsNull(col.Index) {

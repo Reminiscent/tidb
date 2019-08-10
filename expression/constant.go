@@ -73,7 +73,7 @@ func (c *Constant) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chu
 }
 
 // ColEvalReal returns a column of real representation of Constant.
-func (c *Constant) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error { // todo
+func (c *Constant) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	value, isNull, err := c.EvalReal(ctx, chunk.Row{})
 	if err != nil {
 		return err
@@ -84,6 +84,22 @@ func (c *Constant) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *ch
 		out.FillNulls(cnt, 8)
 	} else {
 		out.FillReal(value, cnt)
+	}
+	return nil
+}
+
+// ColEvalDecimal returns a column of decimal representation of Constant.
+func (c *Constant) ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	value, isNull, err := c.EvalDecimal(ctx, chunk.Row{})
+	if err != nil {
+		return err
+	}
+
+	cnt := chk.NumRows()
+	if isNull {
+		out.FillNulls(cnt, types.MyDecimalStructSize)
+	} else {
+		out.FillDecimal(value, cnt)
 	}
 	return nil
 }

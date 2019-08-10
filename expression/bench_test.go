@@ -192,7 +192,7 @@ func BenchmarkScalarFunctionClone(b *testing.B) {
 }
 */
 
-///*
+/*
 func BenchmarkScalarFuncPlus(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
@@ -241,7 +241,7 @@ func BenchmarkScalarFuncPlus(b *testing.B) {
 
 // */
 
-///*
+/*
 func BenchmarkVectorizedScalarFuncPlus(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
@@ -289,7 +289,7 @@ func BenchmarkVectorizedScalarFuncPlus(b *testing.B) {
 
 //*/
 
-///*
+/*
 func BenchmarkScalarFuncMul(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeDouble, Flen: mysql.MaxRealWidth},
@@ -338,7 +338,7 @@ func BenchmarkScalarFuncMul(b *testing.B) {
 
 // */
 
-///*
+/*
 func BenchmarkVectorizedScalarFuncMul(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeDouble, Flen: mysql.MaxRealWidth},
@@ -378,6 +378,103 @@ func BenchmarkVectorizedScalarFuncMul(b *testing.B) {
 		outputChunk.Reset()
 
 		err := RealVectorizedExecute(ctx, []Expression{funcMul}, inputChunk, outputChunk)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+//*/
+
+///*
+func BenchmarkScalarFuncColumnPlusConstant(b *testing.B) {
+	col0 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
+		Index:   0,
+	}
+	constant0 := &Constant{
+		Value:   types.NewDatum(1),
+		RetType: types.NewFieldType(mysql.TypeLonglong),
+	}
+
+	ctx := mock.NewContext()
+	ctx.GetSessionVars().StmtCtx.TimeZone = time.Local
+	ctx.GetSessionVars().InitChunkSize = 32
+	ctx.GetSessionVars().MaxChunkSize = 1024
+
+	funcPlus, err := NewFunction(
+		ctx,
+		ast.Plus,
+		&types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
+		[]Expression{col0, constant0}...,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Construct input and output Chunks.
+	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, constant0.RetType}, 1024)
+	for i := 0; i < 1024; i++ {
+		inputChunk.AppendInt64(0, int64(i))
+		inputChunk.AppendInt64(1, int64(i))
+	}
+
+	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
+	inputIter := chunk.NewIterator4Chunk(inputChunk)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		outputChunk.Reset()
+
+		err := VectorizedExecute(ctx, []Expression{funcPlus}, inputIter, outputChunk)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// */
+
+///*
+func BenchmarkVectorizedColumnPlusConstantFunc(b *testing.B) {
+	col0 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
+		Index:   0,
+	}
+	constant0 := &Constant{
+		Value:   types.NewDatum(1),
+		RetType: types.NewFieldType(mysql.TypeLonglong),
+	}
+
+	ctx := mock.NewContext()
+	ctx.GetSessionVars().StmtCtx.TimeZone = time.Local
+	ctx.GetSessionVars().InitChunkSize = 32
+	ctx.GetSessionVars().MaxChunkSize = 1024
+
+	funcPlus, err := NewFunction(
+		ctx,
+		ast.Plus,
+		&types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
+		[]Expression{col0, constant0}...,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Construct input and output Chunks.
+	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, constant0.RetType}, 1024)
+	for i := 0; i < 1024; i++ {
+		inputChunk.AppendInt64(0, int64(i))
+		inputChunk.AppendInt64(1, int64(i))
+	}
+
+	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		outputChunk.Reset()
+
+		err := RealVectorizedExecute(ctx, []Expression{funcPlus}, inputChunk, outputChunk)
 		if err != nil {
 			panic(err)
 		}
