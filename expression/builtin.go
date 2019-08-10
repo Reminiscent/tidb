@@ -45,6 +45,10 @@ func (b *baseBuiltinFunc) colEvalReal(chk *chunk.Chunk, out *chunk.Column) error
 	panic("implement me")
 }
 
+func (b *baseBuiltinFunc) colEvalDecimal(chk *chunk.Chunk, out *chunk.Column) error {
+	panic("implement me")
+}
+
 func (b *baseBuiltinFunc) PbCode() tipb.ScalarFuncSig {
 	return b.pbCode
 }
@@ -278,6 +282,8 @@ type builtinFunc interface {
 	evalString(row chunk.Row) (val string, isNull bool, err error)
 	// evalDecimal evaluates decimal representation of builtinFunc by given row.
 	evalDecimal(row chunk.Row) (val *types.MyDecimal, isNull bool, err error)
+	// evalDecimal evaluates decimal representation of builtinFunc by given chunk.
+	colEvalDecimal(chk *chunk.Chunk, out *chunk.Column) error
 	// evalTime evaluates DATE/DATETIME/TIMESTAMP representation of builtinFunc by given row.
 	evalTime(row chunk.Row) (val types.Time, isNull bool, err error)
 	// evalDuration evaluates duration representation of builtinFunc by given row.

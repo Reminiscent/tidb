@@ -55,7 +55,7 @@ type Expression interface {
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)
 
-	// ColEvalReal returns the float64 representation of expression.
+	// ColEvalReal returns a column of float64 representation of expression.
 	ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalString returns the string representation of expression.
@@ -63,6 +63,9 @@ type Expression interface {
 
 	// EvalDecimal returns the decimal representation of expression.
 	EvalDecimal(ctx sessionctx.Context, row chunk.Row) (val *types.MyDecimal, isNull bool, err error)
+
+	// ColEvalDecimal returns a column of decimal representation of expression.
+	ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalTime returns the DATE/DATETIME/TIMESTAMP representation of expression.
 	EvalTime(ctx sessionctx.Context, row chunk.Row) (val types.Time, isNull bool, err error)

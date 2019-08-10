@@ -256,6 +256,11 @@ func (c *Column) FillReal(value float64, cnt int) {
 	c.finishFillFixedValue(cnt)
 }
 
+func (c *Column) FillDecimal(value *types.MyDecimal, cnt int) {
+	*(*types.MyDecimal)(unsafe.Pointer(&c.elemBuf[0])) = *value
+	c.finishFillFixedValue(cnt)
+}
+
 func (c *Column) finishFillFixedValue(cnt int) {
 	c.nullCount, c.length = 0, cnt
 	c.fillSameNullBits(true, cnt)

@@ -249,6 +249,11 @@ func (sf *ScalarFunction) EvalDecimal(ctx sessionctx.Context, row chunk.Row) (*t
 	return sf.Function.evalDecimal(row)
 }
 
+// EvalDecimal implements Expression interface.
+func (sf *ScalarFunction) ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	return sf.Function.colEvalDecimal(chk, out)
+}
+
 // EvalString implements Expression interface.
 func (sf *ScalarFunction) EvalString(ctx sessionctx.Context, row chunk.Row) (string, bool, error) {
 	return sf.Function.evalString(row)
