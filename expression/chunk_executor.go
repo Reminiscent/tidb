@@ -279,6 +279,8 @@ func vectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chu
 		err = expr.ColEvalInt(ctx, input, output.GetColumn(colID))
 	case types.ETReal:
 		err = expr.ColEvalReal(ctx, input, output.GetColumn(colID))
+	case types.ETDecimal:
+		err = expr.ColEvalDecimal(ctx, input, output.GetColumn(colID))
 	default:
 		itr := chunk.NewIterator4Chunk(input)
 		err = evalOneColumn(ctx, expr, itr, output, colID)

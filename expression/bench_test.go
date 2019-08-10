@@ -386,7 +386,7 @@ func BenchmarkVectorizedScalarFuncMul(b *testing.B) {
 
 //*/
 
-///*
+/*
 func BenchmarkScalarFuncColumnPlusConstant(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
@@ -435,7 +435,7 @@ func BenchmarkScalarFuncColumnPlusConstant(b *testing.B) {
 
 // */
 
-///*
+/*
 func BenchmarkVectorizedColumnPlusConstantFunc(b *testing.B) {
 	col0 := &Column{
 		RetType: &types.FieldType{Tp: mysql.TypeLonglong, Flen: mysql.MaxIntWidth},
@@ -475,6 +475,113 @@ func BenchmarkVectorizedColumnPlusConstantFunc(b *testing.B) {
 		outputChunk.Reset()
 
 		err := RealVectorizedExecute(ctx, []Expression{funcPlus}, inputChunk, outputChunk)
+		if err != nil {
+			panic(err)
+		}
+	}
+//*/
+
+/*
+func BenchmarkScalarFuncDecimalGreatest(b *testing.B) {
+	col0 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		Index:   0,
+	}
+	col1 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		Index:   1,
+	}
+	col2 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		Index:   2,
+	}
+
+	ctx := mock.NewContext()
+	ctx.GetSessionVars().StmtCtx.TimeZone = time.Local
+	ctx.GetSessionVars().InitChunkSize = 32
+	ctx.GetSessionVars().MaxChunkSize = 1024
+
+	funcGreatest, err := NewFunction(
+		ctx,
+		ast.Greatest,
+		&types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		[]Expression{col0, col1, col2}...,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Construct input and output Chunks.
+	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType, col2.RetType}, 1024)
+	for i := 0; i < 1024; i++ {
+		var d0, d1, d2 types.MyDecimal
+		inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
+		inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		inputChunk.AppendMyDecimal(2, d2.FromInt(int64(i+2)))
+	}
+
+	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
+	inputIter := chunk.NewIterator4Chunk(inputChunk)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		outputChunk.Reset()
+
+		err := VectorizedExecute(ctx, []Expression{funcGreatest}, inputIter, outputChunk)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// */
+
+///*
+func BenchmarkVectorizedScalarFuncDecimalGreatest(b *testing.B) {
+	col0 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		Index:   0,
+	}
+	col1 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		Index:   1,
+	}
+	col2 := &Column{
+		RetType: &types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		Index:   2,
+	}
+
+	ctx := mock.NewContext()
+	ctx.GetSessionVars().StmtCtx.TimeZone = time.Local
+	ctx.GetSessionVars().InitChunkSize = 32
+	ctx.GetSessionVars().MaxChunkSize = 1024
+
+	funcGreatest, err := NewFunction(
+		ctx,
+		ast.Greatest,
+		&types.FieldType{Tp: mysql.TypeNewDecimal, Flen: mysql.MaxDecimalWidth},
+		[]Expression{col0, col1, col2}...,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Construct input and output Chunks.
+	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType, col2.RetType}, 1024)
+	for i := 0; i < 1024; i++ {
+		var d0, d1, d2 types.MyDecimal
+		inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
+		inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		inputChunk.AppendMyDecimal(2, d2.FromInt(int64(i+2)))
+	}
+
+	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		outputChunk.Reset()
+
+		err := RealVectorizedExecute(ctx, []Expression{funcGreatest}, inputChunk, outputChunk)
 		if err != nil {
 			panic(err)
 		}

@@ -68,6 +68,14 @@ func (c *Column) SetFloat64(index int, x float64) {
 	*(*float64)(unsafe.Pointer(&c.data[index*8])) = x
 }
 
+func (c *Column) GetMyDecimal(index int) *types.MyDecimal {
+	return (*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize]))
+}
+
+func (c *Column) SetMyDecimal(index int, x *types.MyDecimal) {
+	*(*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize])) = *x
+}
+
 // NewColumn creates a new Column with the specific length and capacity.
 func NewColumn(ft *types.FieldType, cap int) *Column {
 	typeSize := getFixedLen(ft)
@@ -105,6 +113,17 @@ func (c *Column) reset() {
 func (c *Column) IsNull(rowIdx int) bool {
 	nullByte := c.nullBitmap[rowIdx/8]
 	return nullByte&(1<<(uint(rowIdx)&7)) == 0
+}
+
+func (c *Column) SetNull(rowIdx int, isNull bool) {
+	nullByte := c.nullBitmap[rowIdx/8]
+	pos := nullByte & (1 << (uint(rowIdx) & 7))
+	if isNull {
+		c.nullBitmap[rowIdx/8] |= 1 << pos
+	} else {
+		c.nullBitmap[rowIdx/8] &= byte(255) ^ (1 << pos)
+	}
+
 }
 
 func (c *Column) CopyConstruct() *Column {
