@@ -539,6 +539,56 @@ func (b *builtinGreatestDecimalSig) evalDecimal(row chunk.Row) (max *types.MyDec
 	return
 }
 
+// colEvalDecimal evals a builtinGreatestDecimalSig.
+// See http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
+func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
+	err = b.args[0].ColEvalDecimal(b.ctx, chk, lhs)
+	if err != nil {
+		return err
+	}
+
+	length := lhs.GetLength()
+	argNum := len(b.args)
+	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeDecimal), length)
+
+	isNull := make([]bool, length, length)
+	max := make([]*types.MyDecimal, length, length)
+	for i := 0; i < length; i++ {
+		isNull[i] = lhs.IsNull(i)
+		if !isNull[i] {
+			max[i] = lhs.GetMyDecimal(i)
+		}
+	}
+
+	for i := 1; i < argNum; i++ {
+		err = b.args[i].ColEvalDecimal(b.ctx, chk, rhs)
+		if err != nil {
+			return err
+		}
+		for j := 0; j < length; j++ {
+			if isNull[j] {
+				continue
+			} else if rhs.IsNull(j) {
+				isNull[j] = true
+				continue
+			}
+			v := rhs.GetMyDecimal(j)
+			if v.Compare(max[j]) > 0 {
+				max[j] = v
+			}
+		}
+	}
+	for i := 0; i < length; i++ {
+		lhs.SetNull(i, isNull[i])
+		if !isNull[i] {
+			lhs.SetMyDecimal(i, max[i])
+		}
+
+	}
+
+	return
+}
+
 type builtinGreatestStringSig struct {
 	baseBuiltinFunc
 }
