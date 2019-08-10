@@ -23,29 +23,6 @@ import (
 	"github.com/pingcap/tidb/types/json"
 )
 
-func (c *Column) appendDuration(dur types.Duration) {
-	c.AppendInt64(int64(dur.Duration))
-}
-
-func (c *Column) appendMyDecimal(dec *types.MyDecimal) {
-	*(*types.MyDecimal)(unsafe.Pointer(&c.elemBuf[0])) = *dec
-	c.finishAppendFixed()
-}
-
-func (c *Column) appendNameValue(name string, val uint64) {
-	var buf [8]byte
-	*(*uint64)(unsafe.Pointer(&buf[0])) = val
-	c.data = append(c.data, buf[:]...)
-	c.data = append(c.data, name...)
-	c.finishAppendVar()
-}
-
-func (c *Column) appendJSON(j json.BinaryJSON) {
-	c.data = append(c.data, j.TypeCode)
-	c.data = append(c.data, j.Value...)
-	c.finishAppendVar()
-}
-
 type Column struct {
 	length     int
 	nullCount  int
@@ -53,6 +30,15 @@ type Column struct {
 	offsets    []int64
 	data       []byte
 	elemBuf    []byte
+}
+
+// NewColumn creates a new Column with the specific length and capacity.
+func NewColumn(ft *types.FieldType, cap int) *Column {
+	typeSize := getFixedLen(ft)
+	if typeSize == varElemLen {
+		return newVarLenColumn(cap, nil)
+	}
+	return newFixedLenColumn(typeSize, cap)
 }
 
 func (c *Column) GetInt64(index int) int64 {
@@ -86,6 +72,14 @@ func (c *Column) SetFloat64(index int, x float64) {
 	*(*float64)(unsafe.Pointer(&c.data[index*8])) = x
 }
 
+func (c *Column) GetMyDecimal(index int) *types.MyDecimal {
+	return (*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize]))
+}
+
+func (c *Column) SetMyDecimal(index int, x *types.MyDecimal) {
+	*(*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize])) = *x
+}
+
 func (c *Column) GetBytes(index int) []byte {
 	start, end := c.offsets[index], c.offsets[index+1]
 	return c.data[start:end]
@@ -102,12 +96,14 @@ func (c *Column) GetDuration(index, fillFsp int) types.Duration {
 	}
 }
 
-func (c *Column) GetMyDecimal(index int) *types.MyDecimal {
-	return (*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize]))
+func (c *Column) GetEnum(index int) types.Enum {
+	name, value := c.getNameValue(index)
+	return types.Enum{Name: name, Value: value}
 }
 
-func (c *Column) SetMyDecimal(index int, x *types.MyDecimal) {
-	*(*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize])) = *x
+func (c *Column) GetSet(index int) types.Set {
+	name, value := c.getNameValue(index)
+	return types.Set{Name: name, Value: value}
 }
 
 func (c *Column) getNameValue(index int) (string, uint64) {
@@ -120,16 +116,6 @@ func (c *Column) getNameValue(index int) (string, uint64) {
 	return name, value
 }
 
-func (c *Column) GetEnum(index int) types.Enum {
-	name, value := c.getNameValue(index)
-	return types.Enum{Name: name, Value: value}
-}
-
-func (c *Column) GetSet(index int) types.Set {
-	name, value := c.getNameValue(index)
-	return types.Set{Name: name, Value: value}
-}
-
 func (c *Column) GetJSON(index int) json.BinaryJSON {
 	start, end := c.offsets[index], c.offsets[index+1]
 	return json.BinaryJSON{
@@ -138,18 +124,9 @@ func (c *Column) GetJSON(index int) json.BinaryJSON {
 	}
 }
 
-// NewColumn creates a new Column with the specific length and capacity.
-func NewColumn(ft *types.FieldType, cap int) *Column {
-	typeSize := getFixedLen(ft)
-	if typeSize == varElemLen {
-		return newVarLenColumn(cap, nil)
-	}
-	return newFixedLenColumn(typeSize, cap)
-}
-
-func (c1 *Column) MergeNullBitMap(c2 *Column) {
-	for i := range c1.nullBitmap {
-		c1.nullBitmap[i] = c1.nullBitmap[i] & c2.nullBitmap[i]
+func (c *Column) MergeNullBitMap(other *Column) {
+	for i := range c.nullBitmap {
+		c.nullBitmap[i] = c.nullBitmap[i] & other.nullBitmap[i]
 	}
 }
 
@@ -213,103 +190,6 @@ func (c *Column) CopyFrom(that *Column) {
 		c.offsets = c.offsets[:0]
 		c.offsets = append(c.offsets, that.offsets...)
 	}
-}
-
-func (c *Column) appendNullBitmap(notNull bool) {
-	idx := c.length >> 3
-	if idx >= len(c.nullBitmap) {
-		c.nullBitmap = append(c.nullBitmap, 0)
-	}
-	if notNull {
-		pos := uint(c.length) & 7
-		c.nullBitmap[idx] |= byte(1 << pos)
-	} else {
-		c.nullCount++
-	}
-}
-
-// appendMultiSameNullBitmap appends multiple same bit value to `nullBitMap`.
-// notNull means not null.
-// num means the number of bits that should be appended.
-func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
-	numNewBytes := ((c.length + num + 7) >> 3) - len(c.nullBitmap)
-	b := byte(0)
-	if notNull {
-		b = 0xff
-	}
-	for i := 0; i < numNewBytes; i++ {
-		c.nullBitmap = append(c.nullBitmap, b)
-	}
-	if !notNull {
-		c.nullCount += num
-		return
-	}
-	// 1. Set all the remaining bits in the last slot of old c.numBitMap to 1.
-	numRemainingBits := uint(c.length % 8)
-	bitMask := byte(^((1 << numRemainingBits) - 1))
-	c.nullBitmap[c.length/8] |= bitMask
-	// 2. Set all the redundant bits in the last slot of new c.numBitMap to 0.
-	numRedundantBits := uint(len(c.nullBitmap)*8 - c.length - num)
-	bitMask = byte(1<<(8-numRedundantBits)) - 1
-	c.nullBitmap[len(c.nullBitmap)-1] &= bitMask
-}
-
-func (c *Column) AppendNull() {
-	c.appendNullBitmap(false)
-	if c.isFixed() {
-		c.data = append(c.data, c.elemBuf...)
-	} else {
-		c.offsets = append(c.offsets, c.offsets[c.length])
-	}
-	c.length++
-}
-
-func (c *Column) finishAppendFixed() {
-	c.data = append(c.data, c.elemBuf...)
-	c.appendNullBitmap(true)
-	c.length++
-}
-
-func (c *Column) AppendInt64(i int64) {
-	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = i
-	c.finishAppendFixed()
-}
-
-// AppendUint64 appends a uint64 value into this Column.
-func (c *Column) appendUint64(u uint64) {
-	*(*uint64)(unsafe.Pointer(&c.elemBuf[0])) = u
-	c.finishAppendFixed()
-}
-
-func (c *Column) appendFloat32(f float32) {
-	*(*float32)(unsafe.Pointer(&c.elemBuf[0])) = f
-	c.finishAppendFixed()
-}
-
-func (c *Column) appendFloat64(f float64) {
-	*(*float64)(unsafe.Pointer(&c.elemBuf[0])) = f
-	c.finishAppendFixed()
-}
-
-func (c *Column) finishAppendVar() {
-	c.appendNullBitmap(true)
-	c.offsets = append(c.offsets, int64(len(c.data)))
-	c.length++
-}
-
-func (c *Column) appendString(str string) {
-	c.data = append(c.data, str...)
-	c.finishAppendVar()
-}
-
-func (c *Column) appendBytes(b []byte) {
-	c.data = append(c.data, b...)
-	c.finishAppendVar()
-}
-
-func (c *Column) appendTime(t types.Time) {
-	writeTime(c.elemBuf, t)
-	c.finishAppendFixed()
 }
 
 func (c *Column) FillNulls(cnt, width int) {
@@ -437,4 +317,124 @@ func (c *Column) GetDatum(rowIdx int, tp *types.FieldType) types.Datum {
 		}
 	}
 	return d
+}
+
+func (c *Column) appendDuration(dur types.Duration) {
+	c.AppendInt64(int64(dur.Duration))
+}
+
+func (c *Column) appendMyDecimal(dec *types.MyDecimal) {
+	*(*types.MyDecimal)(unsafe.Pointer(&c.elemBuf[0])) = *dec
+	c.finishAppendFixed()
+}
+
+func (c *Column) appendNameValue(name string, val uint64) {
+	var buf [8]byte
+	*(*uint64)(unsafe.Pointer(&buf[0])) = val
+	c.data = append(c.data, buf[:]...)
+	c.data = append(c.data, name...)
+	c.finishAppendVar()
+}
+
+func (c *Column) appendJSON(j json.BinaryJSON) {
+	c.data = append(c.data, j.TypeCode)
+	c.data = append(c.data, j.Value...)
+	c.finishAppendVar()
+}
+
+func (c *Column) appendNullBitmap(notNull bool) {
+	idx := c.length >> 3
+	if idx >= len(c.nullBitmap) {
+		c.nullBitmap = append(c.nullBitmap, 0)
+	}
+	if notNull {
+		pos := uint(c.length) & 7
+		c.nullBitmap[idx] |= byte(1 << pos)
+	} else {
+		c.nullCount++
+	}
+}
+
+// appendMultiSameNullBitmap appends multiple same bit value to `nullBitMap`.
+// notNull means not null.
+// num means the number of bits that should be appended.
+func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
+	numNewBytes := ((c.length + num + 7) >> 3) - len(c.nullBitmap)
+	b := byte(0)
+	if notNull {
+		b = 0xff
+	}
+	for i := 0; i < numNewBytes; i++ {
+		c.nullBitmap = append(c.nullBitmap, b)
+	}
+	if !notNull {
+		c.nullCount += num
+		return
+	}
+	// 1. Set all the remaining bits in the last slot of old c.numBitMap to 1.
+	numRemainingBits := uint(c.length % 8)
+	bitMask := byte(^((1 << numRemainingBits) - 1))
+	c.nullBitmap[c.length/8] |= bitMask
+	// 2. Set all the redundant bits in the last slot of new c.numBitMap to 0.
+	numRedundantBits := uint(len(c.nullBitmap)*8 - c.length - num)
+	bitMask = byte(1<<(8-numRedundantBits)) - 1
+	c.nullBitmap[len(c.nullBitmap)-1] &= bitMask
+}
+
+func (c *Column) AppendNull() {
+	c.appendNullBitmap(false)
+	if c.isFixed() {
+		c.data = append(c.data, c.elemBuf...)
+	} else {
+		c.offsets = append(c.offsets, c.offsets[c.length])
+	}
+	c.length++
+}
+
+func (c *Column) finishAppendFixed() {
+	c.data = append(c.data, c.elemBuf...)
+	c.appendNullBitmap(true)
+	c.length++
+}
+
+func (c *Column) AppendInt64(i int64) {
+	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = i
+	c.finishAppendFixed()
+}
+
+// AppendUint64 appends a uint64 value into this Column.
+func (c *Column) appendUint64(u uint64) {
+	*(*uint64)(unsafe.Pointer(&c.elemBuf[0])) = u
+	c.finishAppendFixed()
+}
+
+func (c *Column) appendFloat32(f float32) {
+	*(*float32)(unsafe.Pointer(&c.elemBuf[0])) = f
+	c.finishAppendFixed()
+}
+
+func (c *Column) AppendFloat64(f float64) {
+	*(*float64)(unsafe.Pointer(&c.elemBuf[0])) = f
+	c.finishAppendFixed()
+}
+
+func (c *Column) finishAppendVar() {
+	c.appendNullBitmap(true)
+	c.offsets = append(c.offsets, int64(len(c.data)))
+	c.length++
+}
+
+func (c *Column) appendString(str string) {
+	c.data = append(c.data, str...)
+	c.finishAppendVar()
+}
+
+func (c *Column) appendBytes(b []byte) {
+	c.data = append(c.data, b...)
+	c.finishAppendVar()
+}
+
+func (c *Column) appendTime(t types.Time) {
+	writeTime(c.elemBuf, t)
+	c.finishAppendFixed()
 }
