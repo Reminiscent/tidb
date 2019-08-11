@@ -300,15 +300,34 @@ func (col *Column) EvalString(ctx sessionctx.Context, row chunk.Row) (string, bo
 }
 
 // ColEvalString returns string representation of Column.
-func (col *Column) ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error { // todo
-	// Specially handle the ENUM/SET/BIT input value.
-	if col.GetType().Hybrid() {
-		// todo
-	}
+func (col *Column) ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	in := chk.GetColumn(col.Index)
+	length := in.GetLength()
 
-	out.CopyFrom(chk.GetColumn(col.Index))
-	if ctx.GetSessionVars().StmtCtx.PadCharToFullLength && col.GetType().Tp == mysql.TypeString {
-		// todo
+	if col.GetType().Hybrid() {
+		// not real strings
+		for i := 0; i < length; i++ {
+			datum := in.GetDatum(i, col.RetType)
+			s, err := datum.ToString()
+			if err != nil {
+				return err
+			}
+			out.AppendString(s)
+		}
+	} else if ctx.GetSessionVars().StmtCtx.PadCharToFullLength && col.GetType().Tp == mysql.TypeString {
+		// handle PadCharToFullLength mode
+		minLen := col.RetType.Flen
+		for i := 0; i < length; i++ {
+			s := string(in.GetBytes(i))
+			sLen := len([]rune(s))
+			if sLen < minLen {
+				s = s + strings.Repeat(" ", minLen-sLen)
+			}
+			out.AppendString(s)
+		}
+	} else {
+		// simple strings
+		out.CopyFrom(in)
 	}
 	return nil
 }

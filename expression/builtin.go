@@ -49,6 +49,10 @@ func (b *baseBuiltinFunc) colEvalDecimal(chk *chunk.Chunk, out *chunk.Column) er
 	panic("baseBuiltinFunc.colEvalDecimal() should never be called.")
 }
 
+func (b *baseBuiltinFunc) colEvalString(chk *chunk.Chunk, out *chunk.Column) error {
+	panic("baseBuiltinFunc.colEvalString() should never be called.")
+}
+
 func (b *baseBuiltinFunc) PbCode() tipb.ScalarFuncSig {
 	return b.pbCode
 }

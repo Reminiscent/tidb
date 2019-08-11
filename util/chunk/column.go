@@ -440,7 +440,7 @@ func (c *Column) finishAppendVar() {
 	c.length++
 }
 
-func (c *Column) appendString(str string) {
+func (c *Column) AppendString(str string) {
 	c.data = append(c.data, str...)
 	c.finishAppendVar()
 }
