@@ -259,6 +259,11 @@ func (sf *ScalarFunction) EvalString(ctx sessionctx.Context, row chunk.Row) (str
 	return sf.Function.evalString(row)
 }
 
+// ColEvalString implements Expression interface.
+func (sf *ScalarFunction) ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	return sf.Function.colEvalString(chk, out)
+}
+
 // EvalTime implements Expression interface.
 func (sf *ScalarFunction) EvalTime(ctx sessionctx.Context, row chunk.Row) (types.Time, bool, error) {
 	return sf.Function.evalTime(row)

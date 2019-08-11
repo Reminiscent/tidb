@@ -104,6 +104,23 @@ func (c *Constant) ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out 
 	return nil
 }
 
+// ColEvalString returns string representation of Constant.
+func (c *Constant) ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	value, isNull, err := c.EvalString(ctx, chunk.Row{})
+	if err != nil {
+		return err
+	}
+
+	cnt := chk.NumRows()
+	if isNull {
+		// width = 0 means the type is not fixed
+		out.FillNulls(cnt, 0)
+	} else {
+		out.FillString(value, cnt)
+	}
+	return nil
+}
+
 // String implements fmt.Stringer interface.
 func (c *Constant) String() string {
 	if c.DeferredExpr != nil {

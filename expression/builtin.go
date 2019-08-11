@@ -280,6 +280,8 @@ type builtinFunc interface {
 	colEvalReal(chk *chunk.Chunk, out *chunk.Column) error
 	// evalString evaluates string representation of builtinFunc by given row.
 	evalString(row chunk.Row) (val string, isNull bool, err error)
+	// colEvalString evaluates string representation of builtinFunc by given chunk.
+	colEvalString(chk *chunk.Chunk, out *chunk.Column) error
 	// evalDecimal evaluates decimal representation of builtinFunc by given row.
 	evalDecimal(row chunk.Row) (val *types.MyDecimal, isNull bool, err error)
 	// evalDecimal evaluates decimal representation of builtinFunc by given chunk.
