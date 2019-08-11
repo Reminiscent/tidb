@@ -552,12 +552,8 @@ func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, lhs *chunk.
 	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeDecimal), length)
 
 	isNull := make([]bool, length, length)
-	max := make([]*types.MyDecimal, length, length)
 	for i := 0; i < length; i++ {
 		isNull[i] = lhs.IsNull(i)
-		if !isNull[i] {
-			max[i] = lhs.GetMyDecimal(i)
-		}
 	}
 
 	for i := 1; i < argNum; i++ {
@@ -570,20 +566,14 @@ func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, lhs *chunk.
 				continue
 			} else if rhs.IsNull(j) {
 				isNull[j] = true
+				lhs.SetNull(j, true)
 				continue
 			}
 			v := rhs.GetMyDecimal(j)
-			if v.Compare(max[j]) > 0 {
-				max[j] = v
+			if v.Compare(lhs.GetMyDecimal(j)) > 0 {
+				lhs.SetMyDecimal(j, v)
 			}
 		}
-	}
-	for i := 0; i < length; i++ {
-		lhs.SetNull(i, isNull[i])
-		if !isNull[i] {
-			lhs.SetMyDecimal(i, max[i])
-		}
-
 	}
 
 	return
