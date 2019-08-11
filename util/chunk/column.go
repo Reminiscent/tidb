@@ -138,7 +138,7 @@ func (c *Column) isFixed() bool {
 	return c.elemBuf != nil
 }
 
-func (c *Column) reset() {
+func (c *Column) Reset() {
 	c.length = 0
 	c.nullCount = 0
 	c.nullBitmap = c.nullBitmap[:0]

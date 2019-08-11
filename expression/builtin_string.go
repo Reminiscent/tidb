@@ -301,6 +301,47 @@ func (b *builtinConcatSig) evalString(row chunk.Row) (d string, isNull bool, err
 	return string(s), false, nil
 }
 
+func (b *builtinConcatSig) colEvalString(chk *chunk.Chunk, out *chunk.Column) (err error) {
+	args := b.getArgs()
+	err = args[0].ColEvalString(b.ctx, chk, out)
+	if err != nil {
+		return nil
+	}
+	length := chk.NumRows()
+	s := make([][]byte, length)
+	isNull := make([]bool, length)
+	for i := 0; i < length; i++ {
+		isNull[i] = out.IsNull(i)
+		if !isNull[i] {
+			s[i] = append(s[i], out.GetBytes(i)...)
+		}
+	}
+	for i := 1; i < len(args); i++ {
+		err = args[i].ColEvalString(b.ctx, chk, out)
+		if err != nil {
+			return err
+		}
+		for j := 0; j < length; j++ {
+			if isNull[j] {
+				continue
+			} else if out.IsNull(j) {
+				isNull[j] = true
+				continue
+			}
+			s[j] = append(s[j], out.GetBytes(j)...)
+		}
+	}
+	out.Reset()
+	for i := 0; i < length; i++ {
+		if isNull[i] {
+			out.AppendNull()
+		} else {
+			out.AppendString(string(s[i]))
+		}
+	}
+	return nil
+}
+
 type concatWSFunctionClass struct {
 	baseFunctionClass
 }
