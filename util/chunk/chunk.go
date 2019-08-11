@@ -236,7 +236,7 @@ func (c *Chunk) Reset() {
 		return
 	}
 	for _, col := range c.columns {
-		col.reset()
+		col.Reset()
 	}
 	c.numVirtualRows = 0
 }
@@ -486,7 +486,7 @@ func (c *Chunk) AppendFloat64(colIdx int, f float64) {
 
 // AppendString appends a string value to the chunk.
 func (c *Chunk) AppendString(colIdx int, str string) {
-	c.columns[colIdx].appendString(str)
+	c.columns[colIdx].AppendString(str)
 }
 
 // AppendBytes appends a bytes value to the chunk.

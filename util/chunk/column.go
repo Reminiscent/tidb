@@ -138,7 +138,7 @@ func (c *Column) isFixed() bool {
 	return c.elemBuf != nil
 }
 
-func (c *Column) reset() {
+func (c *Column) Reset() {
 	c.length = 0
 	c.nullCount = 0
 	c.nullBitmap = c.nullBitmap[:0]
@@ -440,7 +440,7 @@ func (c *Column) finishAppendVar() {
 	c.length++
 }
 
-func (c *Column) appendString(str string) {
+func (c *Column) AppendString(str string) {
 	c.data = append(c.data, str...)
 	c.finishAppendVar()
 }
