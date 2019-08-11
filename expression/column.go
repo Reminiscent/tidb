@@ -299,6 +299,20 @@ func (col *Column) EvalString(ctx sessionctx.Context, row chunk.Row) (string, bo
 	return val, false, nil
 }
 
+// ColEvalString returns string representation of Column.
+func (col *Column) ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error { // todo
+	// Specially handle the ENUM/SET/BIT input value.
+	if col.GetType().Hybrid() {
+		// todo
+	}
+
+	out.CopyFrom(chk.GetColumn(col.Index))
+	if ctx.GetSessionVars().StmtCtx.PadCharToFullLength && col.GetType().Tp == mysql.TypeString {
+		// todo
+	}
+	return nil
+}
+
 // EvalDecimal returns decimal representation of Column.
 func (col *Column) EvalDecimal(ctx sessionctx.Context, row chunk.Row) (*types.MyDecimal, bool, error) {
 	if row.IsNull(col.Index) {

@@ -61,6 +61,9 @@ type Expression interface {
 	// EvalString returns the string representation of expression.
 	EvalString(ctx sessionctx.Context, row chunk.Row) (val string, isNull bool, err error)
 
+	// ColEvalString returns the string representation of expression.
+	ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
+
 	// EvalDecimal returns the decimal representation of expression.
 	EvalDecimal(ctx sessionctx.Context, row chunk.Row) (val *types.MyDecimal, isNull bool, err error)
 

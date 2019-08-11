@@ -224,12 +224,28 @@ func (c *Column) FillDecimal(value *types.MyDecimal, cnt int) {
 	c.finishFillFixedValue(cnt)
 }
 
+func (c *Column) FillString(value string, cnt int) {
+	length := int64(len(value))
+	base := int64(0)
+	for i := 0; i < cnt; i++ {
+		base += length
+		c.data = append(c.data, value...)
+		c.offsets = append(c.offsets, base)
+	}
+	c.finishFillVarValue(cnt)
+}
+
 func (c *Column) finishFillFixedValue(cnt int) {
 	c.nullCount, c.length = 0, cnt
 	c.fillSameNullBits(true, cnt)
 	for i := 0; i < cnt; i++ {
 		c.data = append(c.data, c.elemBuf...)
 	}
+}
+
+func (c *Column) finishFillVarValue(cnt int) {
+	c.nullCount, c.length = 0, cnt
+	c.fillSameNullBits(true, cnt)
 }
 
 func (c *Column) fillSameNullBits(exists bool, cnt int) {
