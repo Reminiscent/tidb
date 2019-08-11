@@ -38,15 +38,15 @@ type baseBuiltinFunc struct {
 }
 
 func (b *baseBuiltinFunc) colEvalInt(chk *chunk.Chunk, out *chunk.Column) error {
-	panic("implement me")
+	panic("baseBuiltinFunc.colEvalInt() should never be called.")
 }
 
 func (b *baseBuiltinFunc) colEvalReal(chk *chunk.Chunk, out *chunk.Column) error {
-	panic("implement me")
+	panic("baseBuiltinFunc.colEvalRead() should never be called.")
 }
 
 func (b *baseBuiltinFunc) colEvalDecimal(chk *chunk.Chunk, out *chunk.Column) error {
-	panic("implement me")
+	panic("baseBuiltinFunc.colEvalDecimal() should never be called.")
 }
 
 func (b *baseBuiltinFunc) PbCode() tipb.ScalarFuncSig {

@@ -121,7 +121,7 @@ func (d *Datum) SetLength(l int) {
 	d.length = uint32(l)
 }
 
-// isNull checks if datum is null.
+// IsNull checks if datum is null.
 func (d *Datum) IsNull() bool {
 	return d.k == KindNull
 }
@@ -419,16 +419,6 @@ func (d *Datum) SetValue(val interface{}) {
 		d.SetMysqlJSON(x)
 	case Time:
 		d.SetMysqlTime(x)
-	default:
-		d.SetInterface(x)
-	}
-}
-
-// SetVectorValue sets any kind of value.
-func (d *Datum) SetVectorValue(val interface{}) {
-	switch x := val.(type) {
-	case int64:
-		d.SetInt64(x)
 	default:
 		d.SetInterface(x)
 	}
