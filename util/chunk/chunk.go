@@ -120,13 +120,6 @@ func (c *Chunk) MemoryUsage() (sum int64) {
 	return
 }
 
-func (c *Chunk) GetColumnLength() int {
-	if len(c.columns) > 0 {
-		return c.columns[0].length
-	}
-	return 0
-}
-
 // newFixedLenColumn creates a fixed length Column with elemLen and initial data capacity.
 func newFixedLenColumn(elemLen, cap int) *Column {
 	return &Column{
