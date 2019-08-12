@@ -221,6 +221,7 @@ func (c *Column) FillNulls(cnt, width int) {
 	c.nullCount, c.length = cnt, cnt
 	c.fillSameNullBits(false, cnt)
 	if c.isFixed() {
+		c.elemBuf = c.elemBuf[:0]
 		for i := 0; i < width; i++ {
 			c.elemBuf = append(c.elemBuf, 0)
 		}
