@@ -550,7 +550,7 @@ func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, out *chunk.
 
 	length := out.GetLength()
 	// buffer to store current values
-	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeDecimal), length)
+	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeNewDecimal), length)
 
 	// result is null once one of args is null,
 	// so we need to record if values are null
