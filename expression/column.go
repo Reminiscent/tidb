@@ -261,7 +261,7 @@ func (col *Column) EvalReal(ctx sessionctx.Context, row chunk.Row) (float64, boo
 	return row.GetFloat64(col.Index), false, nil
 }
 
-// EvalReal returns a vector of real representation of Column.
+// ColEvalReal returns a vector of real representation of Column.
 func (col *Column) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	in := chk.GetColumn(col.Index)
 	if col.GetType().Tp == mysql.TypeFloat {
