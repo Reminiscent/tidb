@@ -41,54 +41,68 @@ func NewColumn(ft *types.FieldType, cap int) *Column {
 	return newFixedLenColumn(typeSize, cap)
 }
 
+// Get an int64 from the column at specified index
 func (c *Column) GetInt64(index int) int64 {
 	return *(*int64)(unsafe.Pointer(&c.data[index*8]))
 }
 
+// Set an int64 in the column at specified index
 func (c *Column) SetInt64(index int, x int64) {
 	*(*int64)(unsafe.Pointer(&c.data[index*8])) = x
 }
+
+// Get an uint64 from the column at specified index
 func (c *Column) GetUInt64(index int) uint64 {
 	return *(*uint64)(unsafe.Pointer(&c.data[index*8]))
 }
 
+// Set an uint64 in the column at specified index
 func (c *Column) SetUInt64(index int, x uint64) {
 	*(*uint64)(unsafe.Pointer(&c.data[index*8])) = x
 }
 
+// Get a float32 from the column at specified index
 func (c *Column) GetFloat32(index int) float32 {
 	return *(*float32)(unsafe.Pointer(&c.data[index*4]))
 }
 
+// Set a float32 in the column at specified index
 func (c *Column) SetFloat32(index int, x float32) {
 	*(*float32)(unsafe.Pointer(&c.data[index*4])) = x
 }
 
+// Get a float64 from the column at specified index
 func (c *Column) GetFloat64(index int) float64 {
 	return *(*float64)(unsafe.Pointer(&c.data[index*8]))
 }
 
+// Set a float64 in the column at specified index
 func (c *Column) SetFloat64(index int, x float64) {
 	*(*float64)(unsafe.Pointer(&c.data[index*8])) = x
 }
 
+// Get a decimal from the column at specified index
 func (c *Column) GetMyDecimal(index int) *types.MyDecimal {
 	return (*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize]))
 }
 
+// Set a decimal in the column at specified index
 func (c *Column) SetMyDecimal(index int, x *types.MyDecimal) {
 	*(*types.MyDecimal)(unsafe.Pointer(&c.data[index*types.MyDecimalStructSize])) = *x
 }
 
+// Get bytes from the column at specified index
 func (c *Column) GetBytes(index int) []byte {
 	start, end := c.offsets[index], c.offsets[index+1]
 	return c.data[start:end]
 }
 
+// Get a time from the column at specified index
 func (c *Column) GetTime(index int) types.Time {
 	return readTime(c.data[index*16:])
 }
 
+// Get a duration from the column at specified index
 func (c *Column) GetDuration(index, fillFsp int) types.Duration {
 	return types.Duration{
 		Duration: time.Duration(c.GetInt64(index)),
@@ -96,11 +110,13 @@ func (c *Column) GetDuration(index, fillFsp int) types.Duration {
 	}
 }
 
+// Get an enum from the column at specified index
 func (c *Column) GetEnum(index int) types.Enum {
 	name, value := c.getNameValue(index)
 	return types.Enum{Name: name, Value: value}
 }
 
+// Get a set from the column at specified index
 func (c *Column) GetSet(index int) types.Set {
 	name, value := c.getNameValue(index)
 	return types.Set{Name: name, Value: value}
@@ -116,6 +132,7 @@ func (c *Column) getNameValue(index int) (string, uint64) {
 	return name, value
 }
 
+// Get a json from the column at specified index
 func (c *Column) GetJSON(index int) json.BinaryJSON {
 	start, end := c.offsets[index], c.offsets[index+1]
 	return json.BinaryJSON{
@@ -124,12 +141,14 @@ func (c *Column) GetJSON(index int) json.BinaryJSON {
 	}
 }
 
+// Merge other's nullBitMap into this's (bit-and)
 func (c *Column) MergeNullBitMap(other *Column) {
 	for i := range c.nullBitmap {
 		c.nullBitmap[i] = c.nullBitmap[i] & other.nullBitmap[i]
 	}
 }
 
+// Get this column's length
 func (c *Column) GetLength() int {
 	return c.length
 }
@@ -138,6 +157,7 @@ func (c *Column) isFixed() bool {
 	return c.elemBuf != nil
 }
 
+// Reset this column to empty
 func (c *Column) Reset() {
 	c.length = 0
 	c.nullCount = 0
@@ -149,11 +169,13 @@ func (c *Column) Reset() {
 	c.data = c.data[:0]
 }
 
+// Indicate whether item at specified index is null
 func (c *Column) IsNull(rowIdx int) bool {
 	nullByte := c.nullBitmap[rowIdx/8]
 	return nullByte&(1<<(uint(rowIdx)&7)) == 0
 }
 
+// Set item at specified index to `isNull`
 func (c *Column) SetNull(rowIdx int, isNull bool) {
 	nullByte := c.nullBitmap[rowIdx/8]
 	pos := nullByte & (1 << (uint(rowIdx) & 7))
@@ -165,7 +187,7 @@ func (c *Column) SetNull(rowIdx int, isNull bool) {
 
 }
 
-func (c *Column) CopyConstruct() *Column {
+func (c *Column) copyConstruct() *Column {
 	newCol := &Column{length: c.length, nullCount: c.nullCount}
 	newCol.nullBitmap = append(newCol.nullBitmap, c.nullBitmap...)
 	newCol.offsets = append(newCol.offsets, c.offsets...)
@@ -174,6 +196,7 @@ func (c *Column) CopyConstruct() *Column {
 	return newCol
 }
 
+// Deep copy from `that` column
 func (c *Column) CopyFrom(that *Column) {
 	c.length, c.nullCount = that.length, that.nullCount
 
@@ -192,6 +215,8 @@ func (c *Column) CopyFrom(that *Column) {
 	}
 }
 
+// Fill this column with `cnt` nulls.
+// `width` indicates fixed-width type's width, a varied-width type should use 0.
 func (c *Column) FillNulls(cnt, width int) {
 	c.nullCount, c.length = cnt, cnt
 	c.fillSameNullBits(false, cnt)
@@ -209,21 +234,25 @@ func (c *Column) FillNulls(cnt, width int) {
 	}
 }
 
+// Fill this column with `cnt` `value`s
 func (c *Column) FillInt64(value int64, cnt int) {
 	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = value
 	c.finishFillFixedValue(cnt)
 }
 
+// Fill this column with `cnt` `value`s
 func (c *Column) FillReal(value float64, cnt int) {
 	*(*float64)(unsafe.Pointer(&c.elemBuf[0])) = value
 	c.finishFillFixedValue(cnt)
 }
 
+// Fill this column with `cnt` `value`s
 func (c *Column) FillDecimal(value *types.MyDecimal, cnt int) {
 	*(*types.MyDecimal)(unsafe.Pointer(&c.elemBuf[0])) = *value
 	c.finishFillFixedValue(cnt)
 }
 
+// Fill this column with `cnt` `value`s
 func (c *Column) FillString(value string, cnt int) {
 	length := int64(len(value))
 	base := int64(0)
@@ -263,6 +292,7 @@ func (c *Column) fillSameNullBits(exists bool, cnt int) {
 	}
 }
 
+// Get a datum at specified index and type
 func (c *Column) GetDatum(rowIdx int, tp *types.FieldType) types.Datum {
 	var d types.Datum
 	switch tp.Tp {
@@ -397,6 +427,7 @@ func (c *Column) appendMultiSameNullBitmap(notNull bool, num int) {
 	c.nullBitmap[len(c.nullBitmap)-1] &= bitMask
 }
 
+// Append a null at the end of this column
 func (c *Column) AppendNull() {
 	c.appendNullBitmap(false)
 	if c.isFixed() {
@@ -413,6 +444,7 @@ func (c *Column) finishAppendFixed() {
 	c.length++
 }
 
+// Append an int64 at the end of this column
 func (c *Column) AppendInt64(i int64) {
 	*(*int64)(unsafe.Pointer(&c.elemBuf[0])) = i
 	c.finishAppendFixed()
@@ -429,6 +461,7 @@ func (c *Column) appendFloat32(f float32) {
 	c.finishAppendFixed()
 }
 
+// Append a float64 at the end of this column
 func (c *Column) AppendFloat64(f float64) {
 	*(*float64)(unsafe.Pointer(&c.elemBuf[0])) = f
 	c.finishAppendFixed()
@@ -440,12 +473,14 @@ func (c *Column) finishAppendVar() {
 	c.length++
 }
 
+// Append a string at the end of this column
 func (c *Column) AppendString(str string) {
 	c.data = append(c.data, str...)
 	c.finishAppendVar()
 }
 
-func (c *Column) appendBytes(b []byte) {
+// Append bytes at the end of this column
+func (c *Column) AppendBytes(b []byte) {
 	c.data = append(c.data, b...)
 	c.finishAppendVar()
 }

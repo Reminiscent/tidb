@@ -57,7 +57,7 @@ func (s *testChunkSuite) TestColumnCopy(c *check.C) {
 		col.AppendInt64(int64(i))
 	}
 
-	c1 := col.CopyConstruct()
+	c1 := col.copyConstruct()
 	c.Check(equalColumn(col, c1), check.IsTrue)
 }
 

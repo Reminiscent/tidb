@@ -302,42 +302,53 @@ func (b *builtinConcatSig) evalString(row chunk.Row) (d string, isNull bool, err
 }
 
 func (b *builtinConcatSig) colEvalString(chk *chunk.Chunk, out *chunk.Column) (err error) {
-	args := b.getArgs()
-	err = args[0].ColEvalString(b.ctx, chk, out)
+	// use output column as buffer
+	err = b.args[0].ColEvalString(b.ctx, chk, out)
 	if err != nil {
 		return nil
 	}
+
 	length := chk.NumRows()
+	// stores appending strings
 	s := make([][]byte, length)
-	isNull := make([]bool, length)
+	// indicates if result values are nulls
+	// result is null once any argument is null
+	resultNulls := make([]bool, length)
 	for i := 0; i < length; i++ {
-		isNull[i] = out.IsNull(i)
-		if !isNull[i] {
+		resultNulls[i] = out.IsNull(i)
+		if !resultNulls[i] {
 			s[i] = append(s[i], out.GetBytes(i)...)
 		}
 	}
-	for i := 1; i < len(args); i++ {
+
+	for i := 1; i < len(b.args); i++ {
 		out.Reset()
-		err = args[i].ColEvalString(b.ctx, chk, out)
+		err = b.args[i].ColEvalString(b.ctx, chk, out)
 		if err != nil {
 			return err
 		}
 		for j := 0; j < length; j++ {
-			if isNull[j] {
+			if resultNulls[j] {
+				// result is null, skip it
 				continue
 			} else if out.IsNull(j) {
-				isNull[j] = true
-				continue
+				// argument is null, stop evaluating this row
+				resultNulls[j] = true
+				s[j] = nil
+			} else {
+				// concat string
+				s[j] = append(s[j], out.GetBytes(j)...)
 			}
-			s[j] = append(s[j], out.GetBytes(j)...)
 		}
 	}
+
+	// write results into out column
 	out.Reset()
 	for i := 0; i < length; i++ {
-		if isNull[i] {
+		if resultNulls[i] {
 			out.AppendNull()
 		} else {
-			out.AppendString(string(s[i]))
+			out.AppendBytes(s[i])
 		}
 	}
 	return nil
