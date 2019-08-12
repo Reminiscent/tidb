@@ -230,23 +230,27 @@ func (s *builtinArithmeticPlusIntSig) evalInt(row chunk.Row) (val int64, isNull 
 }
 
 func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
+	// store one of arguments in output column
 	err = s.args[0].ColEvalInt(s.ctx, chk, lhs)
 	if err != nil {
 		return err
 	}
 
+	// allocate additional memory to store another column of arguments
 	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeLonglong), lhs.GetLength())
 	err = s.args[1].ColEvalInt(s.ctx, chk, rhs)
 	if err != nil {
 		return err
 	}
 
+	// handle nullBitMap in advance to reduce calculation
 	lhs.MergeNullBitMap(rhs)
 
 	length := lhs.GetLength()
 	for i := 0; i < length; i++ {
 		if !lhs.IsNull(i) {
 			l, r := lhs.GetInt64(i), rhs.GetInt64(i)
+			// handle signed integer overflow
 			if (l > 0 && r > math.MaxInt64-l) || (l < 0 && r < math.MinInt64-l) {
 				return types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%v + %v)", l, r))
 			}
@@ -541,17 +545,20 @@ func (s *builtinArithmeticMultiplyRealSig) evalReal(row chunk.Row) (float64, boo
 }
 
 func (s *builtinArithmeticMultiplyRealSig) colEvalReal(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
+	// use output column to store one argument
 	err = s.args[0].ColEvalReal(s.ctx, chk, lhs)
 	if err != nil {
 		return err
 	}
 
+	// allocate memory to store another argument
 	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeDouble), lhs.GetLength())
 	err = s.args[1].ColEvalReal(s.ctx, chk, rhs)
 	if err != nil {
 		return err
 	}
 
+	// handle nullBitMap in advance to reduce calculation
 	lhs.MergeNullBitMap(rhs)
 
 	length := lhs.GetLength()
@@ -559,6 +566,7 @@ func (s *builtinArithmeticMultiplyRealSig) colEvalReal(chk *chunk.Chunk, lhs *ch
 		if !lhs.IsNull(i) {
 			l, r := lhs.GetFloat64(i), rhs.GetFloat64(i)
 			result := l * r
+			// handle float64 arithmetic overflow
 			if math.IsInf(result, 0) {
 				return types.ErrOverflow.GenWithStackByArgs("DOUBLE", fmt.Sprintf("(%v * %v)", l, r))
 			}

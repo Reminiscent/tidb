@@ -541,41 +541,48 @@ func (b *builtinGreatestDecimalSig) evalDecimal(row chunk.Row) (max *types.MyDec
 
 // colEvalDecimal evals a builtinGreatestDecimalSig.
 // See http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
-func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, lhs *chunk.Column) (err error) {
-	err = b.args[0].ColEvalDecimal(b.ctx, chk, lhs)
+func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, out *chunk.Column) (err error) {
+	// use out to store current max values
+	err = b.args[0].ColEvalDecimal(b.ctx, chk, out)
 	if err != nil {
 		return err
 	}
 
-	length := lhs.GetLength()
-	argNum := len(b.args)
+	length := out.GetLength()
+	// buffer to store current values
 	rhs := chunk.NewColumn(types.NewFieldType(mysql.TypeDecimal), length)
 
-	isNull := make([]bool, length, length)
-	for i := 0; i < length; i++ {
-		isNull[i] = lhs.IsNull(i)
+	// result is null once one of args is null,
+	// so we need to record if values are null
+	resultNulls := make([]bool, length)
+	for i := range resultNulls {
+		resultNulls[i] = out.IsNull(i)
 	}
 
+	argNum := len(b.args)
 	for i := 1; i < argNum; i++ {
+		rhs.Reset()
 		err = b.args[i].ColEvalDecimal(b.ctx, chk, rhs)
 		if err != nil {
 			return err
 		}
 		for j := 0; j < length; j++ {
-			if isNull[j] {
+			if resultNulls[j] {
+				// result is null, skip it
 				continue
 			} else if rhs.IsNull(j) {
-				isNull[j] = true
-				lhs.SetNull(j, true)
-				continue
-			}
-			v := rhs.GetMyDecimal(j)
-			if v.Compare(lhs.GetMyDecimal(j)) > 0 {
-				lhs.SetMyDecimal(j, v)
+				// this value is null, set result to null
+				resultNulls[j] = true
+				out.SetNull(j, true)
+			} else {
+				// compare and set max value
+				v := rhs.GetMyDecimal(j)
+				if v.Compare(out.GetMyDecimal(j)) > 0 {
+					out.SetMyDecimal(j, v)
+				}
 			}
 		}
 	}
-
 	return
 }
 

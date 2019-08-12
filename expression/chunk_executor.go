@@ -265,7 +265,7 @@ func VectorizedFilter(ctx sessionctx.Context, filters []Expression, iterator *ch
 // RealVectorizedExecute evaluates a list of expressions column by column and append their results to "output" Chunk.
 func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *chunk.Chunk, output *chunk.Chunk) error {
 	for colID, expr := range exprs {
-		err := vectorizedEvalOneColumn(ctx, expr, input, output, colID)
+		err := colEvalOneColumn(ctx, expr, input, output, colID)
 		if err != nil {
 			return err
 		}
@@ -273,20 +273,21 @@ func RealVectorizedExecute(ctx sessionctx.Context, exprs []Expression, input *ch
 	return nil
 }
 
-func vectorizedEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
+func colEvalOneColumn(ctx sessionctx.Context, expr Expression, input *chunk.Chunk, output *chunk.Chunk, colID int) (err error) {
+	outCol := output.GetColumn(colID)
 	switch evalType := expr.GetType().EvalType(); evalType {
 	case types.ETInt:
-		err = expr.ColEvalInt(ctx, input, output.GetColumn(colID))
+		err = expr.ColEvalInt(ctx, input, outCol)
 	case types.ETReal:
-		err = expr.ColEvalReal(ctx, input, output.GetColumn(colID))
+		err = expr.ColEvalReal(ctx, input, outCol)
 	case types.ETDecimal:
-		err = expr.ColEvalDecimal(ctx, input, output.GetColumn(colID))
+		err = expr.ColEvalDecimal(ctx, input, outCol)
 	case types.ETString:
-		err = expr.ColEvalString(ctx, input, output.GetColumn(colID))
+		err = expr.ColEvalString(ctx, input, outCol)
 	default:
+		// fallback of unimplemented evalTypes
 		itr := chunk.NewIterator4Chunk(input)
 		err = evalOneColumn(ctx, expr, itr, output, colID)
-		//err = errors.New(fmt.Sprintf("evaluation to type %v not implemented", evalType))
 	}
 	return err
 }

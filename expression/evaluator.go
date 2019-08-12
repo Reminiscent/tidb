@@ -43,7 +43,8 @@ type defaultEvaluator struct {
 func (e *defaultEvaluator) run(ctx sessionctx.Context, input, output *chunk.Chunk) error {
 	if e.vectorizable {
 		for i := range e.outputIdxes {
-			err := vectorizedEvalOneColumn(ctx, e.exprs[i], input, output, e.outputIdxes[i])
+			// replace original evalOneColumn with ours
+			err := colEvalOneColumn(ctx, e.exprs[i], input, output, e.outputIdxes[i])
 			if err != nil {
 				return err
 			}

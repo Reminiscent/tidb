@@ -50,24 +50,28 @@ type Expression interface {
 	EvalInt(ctx sessionctx.Context, row chunk.Row) (val int64, isNull bool, err error)
 
 	// ColEvalInt returns a column of int64 representation of expression.
+	// out must be empty before passed in.
 	ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalReal returns the float64 representation of expression.
 	EvalReal(ctx sessionctx.Context, row chunk.Row) (val float64, isNull bool, err error)
 
 	// ColEvalReal returns a column of float64 representation of expression.
+	// out must be empty before passed in.
 	ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalString returns the string representation of expression.
 	EvalString(ctx sessionctx.Context, row chunk.Row) (val string, isNull bool, err error)
 
 	// ColEvalString returns the string representation of expression.
+	// out must be empty before passed in.
 	ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalDecimal returns the decimal representation of expression.
 	EvalDecimal(ctx sessionctx.Context, row chunk.Row) (val *types.MyDecimal, isNull bool, err error)
 
 	// ColEvalDecimal returns a column of decimal representation of expression.
+	// out must be empty before passed in.
 	ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error
 
 	// EvalTime returns the DATE/DATETIME/TIMESTAMP representation of expression.

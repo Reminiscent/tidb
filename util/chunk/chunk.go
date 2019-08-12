@@ -245,7 +245,7 @@ func (c *Chunk) Reset() {
 func (c *Chunk) CopyConstruct() *Chunk {
 	newChk := &Chunk{numVirtualRows: c.numVirtualRows, capacity: c.capacity, columns: make([]*Column, len(c.columns))}
 	for i := range c.columns {
-		newChk.columns[i] = c.columns[i].CopyConstruct()
+		newChk.columns[i] = c.columns[i].copyConstruct()
 	}
 	return newChk
 }
@@ -491,7 +491,7 @@ func (c *Chunk) AppendString(colIdx int, str string) {
 
 // AppendBytes appends a bytes value to the chunk.
 func (c *Chunk) AppendBytes(colIdx int, b []byte) {
-	c.columns[colIdx].appendBytes(b)
+	c.columns[colIdx].AppendBytes(b)
 }
 
 // AppendTime appends a Time value to the chunk.
@@ -555,6 +555,7 @@ func (c *Chunk) AppendDatum(colIdx int, d *types.Datum) {
 	}
 }
 
+// Get a column from the chunk by index
 func (c *Chunk) GetColumn(index int) *Column {
 	return c.columns[index]
 }
