@@ -17,6 +17,7 @@ package expression
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -221,7 +222,11 @@ func BenchmarkScalarFuncIntPlus(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendInt64(0, int64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendInt64(0, int64(i))
+		}
 		inputChunk.AppendInt64(1, int64(i))
 	}
 
@@ -267,7 +272,11 @@ func BenchmarkVectorizedScalarFuncIntPlus(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendInt64(0, int64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendInt64(0, int64(i))
+		}
 		inputChunk.AppendInt64(1, int64(i))
 	}
 
@@ -313,7 +322,11 @@ func BenchmarkScalarFuncIntColumnPlusIntConstant(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendInt64(0, int64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendInt64(0, int64(i))
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -358,7 +371,11 @@ func BenchmarkVectorizedIntColumnPlusIntConstantFunc(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendInt64(0, int64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendInt64(0, int64(i))
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -403,7 +420,11 @@ func BenchmarkScalarFuncRealMul(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendFloat64(0, float64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendFloat64(0, float64(i))
+		}
 		inputChunk.AppendFloat64(1, float64(1024-i))
 	}
 
@@ -449,8 +470,12 @@ func BenchmarkVectorizedScalarFuncRealMul(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendInt64(0, int64(i))
-		inputChunk.AppendInt64(1, int64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendFloat64(0, float64(i))
+		}
+		inputChunk.AppendFloat64(1, float64(1024-i))
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -495,7 +520,11 @@ func BenchmarkRealColumnMulRealConstantFunc(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendFloat64(0, float64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendFloat64(0, float64(i))
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -540,7 +569,11 @@ func BenchmarkVectorizedRealColumnMulRealConstantFunc(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendInt64(0, int64(i))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendFloat64(0, float64(i))
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -590,8 +623,16 @@ func BenchmarkScalarFuncDecimalGreatest(b *testing.B) {
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType, col2.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
 		var d0, d1, d2 types.MyDecimal
-		inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
-		inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		}
 		inputChunk.AppendMyDecimal(2, d2.FromInt(int64(i+2)))
 	}
 
@@ -642,8 +683,16 @@ func BenchmarkVectorizedScalarFuncDecimalGreatest(b *testing.B) {
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType, col2.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
 		var d0, d1, d2 types.MyDecimal
-		inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
-		inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		}
 		inputChunk.AppendMyDecimal(2, d2.FromInt(int64(i+2)))
 	}
 
@@ -695,8 +744,16 @@ func BenchmarkScalarFuncDecimalGreatestForColumnAndConstant(b *testing.B) {
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
 		var d0, d1 types.MyDecimal
-		inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
-		inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -747,8 +804,16 @@ func BenchmarkVectorizedScalarFuncDecimalGreatestForColumnAndConstant(b *testing
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
 		var d0, d1 types.MyDecimal
-		inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
-		inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendMyDecimal(0, d0.FromInt(int64(i)))
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendMyDecimal(1, d1.FromInt(int64(i+1)))
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -796,8 +861,16 @@ func BenchmarkScalarFuncStringConcat(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType, col2.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendString(0, "abc")
-		inputChunk.AppendString(1, "def")
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendString(0, "abc")
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendString(1, "def")
+		}
 		inputChunk.AppendString(2, "ghi")
 	}
 
@@ -847,8 +920,16 @@ func BenchmarkVectorizedScalarFuncStringConcat(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType, col2.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendString(0, "abc")
-		inputChunk.AppendString(1, "def")
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendString(0, "abc")
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendString(1, "def")
+		}
 		inputChunk.AppendString(2, "ghi")
 	}
 
@@ -897,8 +978,16 @@ func BenchmarkScalarFuncStringConcatForColumnAndConstant(b *testing.B) {
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendString(0, "abc")
-		inputChunk.AppendString(1, "def")
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendString(0, "abc")
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendString(1, "def")
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
@@ -947,8 +1036,16 @@ func BenchmarkVectorizedScalarFuncStringConcatForColumnAndConstant(b *testing.B)
 	// Construct input and output Chunks.
 	inputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType, col1.RetType}, 1024)
 	for i := 0; i < 1024; i++ {
-		inputChunk.AppendString(0, "abc")
-		inputChunk.AppendString(1, "def")
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(0)
+		} else {
+			inputChunk.AppendString(0, "abc")
+		}
+		if rand.Int()%9 == 0 {
+			inputChunk.AppendNull(1)
+		} else {
+			inputChunk.AppendString(1, "def")
+		}
 	}
 
 	outputChunk := chunk.NewChunkWithCapacity([]*types.FieldType{col0.RetType}, 1024)
