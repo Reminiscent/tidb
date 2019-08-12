@@ -473,7 +473,7 @@ func BenchmarkRealColumnMulRealConstantFunc(b *testing.B) {
 		Index:   0,
 	}
 	constant0 := &Constant{
-		Value:   types.NewDatum(2.0),
+		Value:   types.NewFloat64Datum(2.0),
 		RetType: types.NewFieldType(mysql.TypeDouble),
 	}
 
@@ -518,7 +518,7 @@ func BenchmarkVectorizedRealColumnMulRealConstantFunc(b *testing.B) {
 		Index:   0,
 	}
 	constant0 := &Constant{
-		Value:   types.NewDatum(2.0),
+		Value:   types.NewFloat64Datum(2.0),
 		RetType: types.NewFieldType(mysql.TypeDouble),
 	}
 

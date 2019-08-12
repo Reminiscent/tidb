@@ -246,11 +246,15 @@ func (s *builtinArithmeticPlusIntSig) colEvalInt(chk *chunk.Chunk, lhs *chunk.Co
 	length := lhs.GetLength()
 	for i := 0; i < length; i++ {
 		if !lhs.IsNull(i) {
-			l, r := lhs.GetInt64(i), rhs.GetInt64(i)
-			if (l > 0 && r > math.MaxInt64-l) || (l < 0 && r < math.MinInt64-l) {
-				return types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%v + %v)", l, r))
+			if rhs.IsNull(i) {
+				lhs.SetNull(i, true)
+			} else {
+				l, r := lhs.GetInt64(i), rhs.GetInt64(i)
+				if (l > 0 && r > math.MaxInt64-l) || (l < 0 && r < math.MinInt64-l) {
+					return types.ErrOverflow.GenWithStackByArgs("BIGINT", fmt.Sprintf("(%v + %v)", l, r))
+				}
+				lhs.SetInt64(i, l+r)
 			}
-			lhs.SetInt64(i, l+r)
 		}
 	}
 	return nil
@@ -557,12 +561,16 @@ func (s *builtinArithmeticMultiplyRealSig) colEvalReal(chk *chunk.Chunk, lhs *ch
 	length := lhs.GetLength()
 	for i := 0; i < length; i++ {
 		if !lhs.IsNull(i) {
-			l, r := lhs.GetFloat64(i), rhs.GetFloat64(i)
-			result := l * r
-			if math.IsInf(result, 0) {
-				return types.ErrOverflow.GenWithStackByArgs("DOUBLE", fmt.Sprintf("(%v * %v)", l, r))
+			if rhs.IsNull(i) {
+				lhs.SetNull(i, true)
+			} else {
+				l, r := lhs.GetFloat64(i), rhs.GetFloat64(i)
+				result := l * r
+				if math.IsInf(result, 0) {
+					return types.ErrOverflow.GenWithStackByArgs("DOUBLE", fmt.Sprintf("(%v * %v)", l, r))
+				}
+				lhs.SetFloat64(i, result)
 			}
-			lhs.SetFloat64(i, result)
 		}
 	}
 	return nil
