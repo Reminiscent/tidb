@@ -317,6 +317,7 @@ func (b *builtinConcatSig) colEvalString(chk *chunk.Chunk, out *chunk.Column) (e
 		}
 	}
 	for i := 1; i < len(args); i++ {
+		out.Reset()
 		err = args[i].ColEvalString(b.ctx, chk, out)
 		if err != nil {
 			return err
