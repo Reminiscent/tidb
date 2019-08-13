@@ -47,3 +47,11 @@
 我们的修改基于 TiDB v3.0.1，可通过 GitHub 的 Compare 功能查看我们的代码改动了哪里：
 
 [Comparing v3.0.1...column · CNife/tidb](https://github.com/CNife/tidb/compare/v3.0.1...CNife:column)
+
+### 单元测试
+
+文件：[./expression/column_evaluator_test.go](./expression/column_evaluator_test.go)
+
+```shell
+go test github.com/pingcap/tidb/expression
+```
