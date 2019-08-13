@@ -29,6 +29,7 @@ type Row struct {
 	idx int
 }
 
+// NewRow init a new row
 func NewRow(chk *Chunk, idx int) Row {
 	return Row{chk, idx}
 }
