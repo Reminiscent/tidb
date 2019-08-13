@@ -249,7 +249,7 @@ func (sf *ScalarFunction) EvalDecimal(ctx sessionctx.Context, row chunk.Row) (*t
 	return sf.Function.evalDecimal(row)
 }
 
-// EvalDecimal implements Expression interface.
+// ColEvalDecimal implements Expression interface.
 func (sf *ScalarFunction) ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
 	return sf.Function.colEvalDecimal(chk, out)
 }

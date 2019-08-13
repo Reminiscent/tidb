@@ -555,7 +555,7 @@ func (c *Chunk) AppendDatum(colIdx int, d *types.Datum) {
 	}
 }
 
-// Get a column from the chunk by index
+// GetColumn get a column from the chunk by index
 func (c *Chunk) GetColumn(index int) *Column {
 	return c.columns[index]
 }
