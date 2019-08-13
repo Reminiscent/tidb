@@ -22,7 +22,7 @@ import (
 	"github.com/pingcap/tidb/util/testleak"
 )
 
-var _ = check.Suite(&testUtilSuite{})
+//var _ = check.Suite(&testUtilSuite{})
 
 type testUtilSuite struct {
 }

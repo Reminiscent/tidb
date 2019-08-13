@@ -27,7 +27,7 @@ import (
 	"github.com/pingcap/tipb/go-tipb"
 )
 
-var _ = Suite(&testEvalSuite{})
+//var _ = Suite(&testEvalSuite{})
 
 type testEvalSuite struct {
 	colID int64

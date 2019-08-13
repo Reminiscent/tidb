@@ -27,7 +27,7 @@ import (
 	"github.com/pingcap/tidb/util/testleak"
 )
 
-var _ = Suite(&testExpressionSuite{})
+//var _ = Suite(&testExpressionSuite{})
 
 type testExpressionSuite struct{}
 
