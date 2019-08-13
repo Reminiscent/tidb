@@ -268,7 +268,7 @@ func (col *Column) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *ch
 		// Convert float32 to float64 one by one
 		length := in.GetLength()
 		for i := 0; i < length; i++ {
-			out.AppendFloat64(in.GetFloat64(i))
+			out.AppendFloat64(float64(in.GetFloat32(i)))
 		}
 	} else {
 		out.CopyFrom(in)
