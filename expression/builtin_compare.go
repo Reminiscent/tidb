@@ -539,6 +539,10 @@ func (b *builtinGreatestDecimalSig) evalDecimal(row chunk.Row) (max *types.MyDec
 	return
 }
 
+func (b *builtinGreatestDecimalSig) supportColEval() bool {
+	return true
+}
+
 // colEvalDecimal evals a builtinGreatestDecimalSig.
 // See http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_greatest
 func (b *builtinGreatestDecimalSig) colEvalDecimal(chk *chunk.Chunk, out *chunk.Column) (err error) {

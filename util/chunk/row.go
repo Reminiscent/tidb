@@ -29,6 +29,10 @@ type Row struct {
 	idx int
 }
 
+func NewRow(chk *Chunk, idx int) Row {
+	return Row{chk, idx}
+}
+
 // IsEmpty returns true if the Row is empty.
 func (r Row) IsEmpty() bool {
 	return r == Row{}

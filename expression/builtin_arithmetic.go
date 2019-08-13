@@ -187,6 +187,10 @@ func (s *builtinArithmeticPlusIntSig) Clone() builtinFunc {
 	return newSig
 }
 
+func (s *builtinArithmeticPlusIntSig) supportColEval() bool {
+	return true
+}
+
 func (s *builtinArithmeticPlusIntSig) evalInt(row chunk.Row) (val int64, isNull bool, err error) {
 	a, isNull, err := s.args[0].EvalInt(s.ctx, row)
 	if isNull || err != nil {
@@ -525,6 +529,10 @@ func (s *builtinArithmeticMultiplyIntSig) Clone() builtinFunc {
 	newSig := &builtinArithmeticMultiplyIntSig{}
 	newSig.cloneFrom(&s.baseBuiltinFunc)
 	return newSig
+}
+
+func (s *builtinArithmeticMultiplyRealSig) supportColEval() bool {
+	return true
 }
 
 func (s *builtinArithmeticMultiplyRealSig) evalReal(row chunk.Row) (float64, bool, error) {

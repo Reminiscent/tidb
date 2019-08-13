@@ -301,6 +301,10 @@ func (b *builtinConcatSig) evalString(row chunk.Row) (d string, isNull bool, err
 	return string(s), false, nil
 }
 
+func (b *builtinConcatSig) supportColEval() bool {
+	return true
+}
+
 func (b *builtinConcatSig) colEvalString(chk *chunk.Chunk, out *chunk.Column) (err error) {
 	// use output column as buffer
 	err = b.args[0].ColEvalString(b.ctx, chk, out)

@@ -37,6 +37,10 @@ type baseBuiltinFunc struct {
 	pbCode tipb.ScalarFuncSig
 }
 
+func (b *baseBuiltinFunc) supportColEval() bool {
+	return false
+}
+
 func (b *baseBuiltinFunc) colEvalInt(chk *chunk.Chunk, out *chunk.Column) error {
 	panic("baseBuiltinFunc.colEvalInt() should never be called.")
 }
@@ -274,6 +278,9 @@ func newBaseBuiltinCastFunc(builtinFunc baseBuiltinFunc, inUnion bool) baseBuilt
 
 // builtinFunc stands for a particular function signature.
 type builtinFunc interface {
+	// indicates whether this function support column based evaluation.
+	supportColEval() bool
+
 	// evalInt evaluates int result of builtinFunc by given row.
 	evalInt(row chunk.Row) (val int64, isNull bool, err error)
 	// colEvalInt evaluates int result of builtinFunc by given chunk.

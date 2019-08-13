@@ -231,7 +231,23 @@ func (sf *ScalarFunction) EvalInt(ctx sessionctx.Context, row chunk.Row) (int64,
 
 // ColEvalInt implements Expression interface.
 func (sf *ScalarFunction) ColEvalInt(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
-	return sf.Function.colEvalInt(chk, out)
+	if sf.Function.supportColEval() {
+		return sf.Function.colEvalInt(chk, out)
+	}
+
+	numRows := chk.NumRows()
+	for i := 0; i < numRows; i++ {
+		value, isNull, err := sf.EvalInt(ctx, chunk.NewRow(chk, i))
+		if err != nil {
+			return err
+		}
+		if isNull {
+			out.AppendNull()
+		} else {
+			out.AppendInt64(value)
+		}
+	}
+	return nil
 }
 
 // EvalReal implements Expression interface.
@@ -241,7 +257,23 @@ func (sf *ScalarFunction) EvalReal(ctx sessionctx.Context, row chunk.Row) (float
 
 // ColEvalReal implements Expression interface.
 func (sf *ScalarFunction) ColEvalReal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
-	return sf.Function.colEvalReal(chk, out)
+	if sf.Function.supportColEval() {
+		return sf.Function.colEvalReal(chk, out)
+	}
+
+	numRows := chk.NumRows()
+	for i := 0; i < numRows; i++ {
+		value, isNull, err := sf.EvalReal(ctx, chunk.NewRow(chk, i))
+		if err != nil {
+			return err
+		}
+		if isNull {
+			out.AppendNull()
+		} else {
+			out.AppendFloat64(value)
+		}
+	}
+	return nil
 }
 
 // EvalDecimal implements Expression interface.
@@ -251,7 +283,23 @@ func (sf *ScalarFunction) EvalDecimal(ctx sessionctx.Context, row chunk.Row) (*t
 
 // ColEvalDecimal implements Expression interface.
 func (sf *ScalarFunction) ColEvalDecimal(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
-	return sf.Function.colEvalDecimal(chk, out)
+	if sf.Function.supportColEval() {
+		return sf.Function.colEvalDecimal(chk, out)
+	}
+
+	numRows := chk.NumRows()
+	for i := 0; i < numRows; i++ {
+		value, isNull, err := sf.EvalDecimal(ctx, chunk.NewRow(chk, i))
+		if err != nil {
+			return err
+		}
+		if isNull {
+			out.AppendNull()
+		} else {
+			out.AppendMyDecimal(value)
+		}
+	}
+	return nil
 }
 
 // EvalString implements Expression interface.
@@ -261,7 +309,23 @@ func (sf *ScalarFunction) EvalString(ctx sessionctx.Context, row chunk.Row) (str
 
 // ColEvalString implements Expression interface.
 func (sf *ScalarFunction) ColEvalString(ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
-	return sf.Function.colEvalString(chk, out)
+	if sf.Function.supportColEval() {
+		return sf.Function.colEvalString(chk, out)
+	}
+
+	numRows := chk.NumRows()
+	for i := 0; i < numRows; i++ {
+		value, isNull, err := sf.EvalString(ctx, chunk.NewRow(chk, i))
+		if err != nil {
+			return err
+		}
+		if isNull {
+			out.AppendNull()
+		} else {
+			out.AppendString(value)
+		}
+	}
+	return nil
 }
 
 // EvalTime implements Expression interface.
