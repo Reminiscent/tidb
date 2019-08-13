@@ -10,6 +10,7 @@ import (
 	"github.com/pingcap/tidb/types"
 	"github.com/pingcap/tidb/util/chunk"
 	"github.com/pingcap/tidb/util/mock"
+	"reflect"
 	"testing"
 )
 
@@ -118,43 +119,73 @@ func testColumnValue(c *C, col *chunk.Column, tp *types.FieldType, index int, ex
 }
 
 func (s *testColumnEvaluatorSuite) TestColumnEvalInt(c *C) {
-	chk := chunk.NewChunkWithCapacity([]*types.FieldType{int64Type}, 2)
-	inCol := chk.GetColumn(0)
-	inCol.AppendInt64(1234)
-	inCol.AppendNull()
-	outCol := chunk.NewColumn(int64Type, 2)
-	column := &Column{
-		RetType: int64Type,
-		Index:   0,
-	}
-
-	err := column.ColEvalInt(s.ctx, chk, outCol)
-
-	c.Assert(err, IsNil)
-	c.Assert(outCol.GetLength(), Equals, 2)
-	c.Assert(outCol.IsNull(0), IsFalse)
-	c.Assert(outCol.GetInt64(0), Equals, int64(1234))
-	c.Assert(outCol.IsNull(1), IsTrue)
+	s.testColumnColEval(c, int64Type, int64(1234567890), nil)
 }
 
 func (s *testColumnEvaluatorSuite) TestColumnEvalReal(c *C) {
-	chk := chunk.NewChunkWithCapacity([]*types.FieldType{float64Type}, 2)
+	s.testColumnColEval(c, float64Type, 12345.67890, float64(123456789), nil)
+}
+
+func (s *testColumnEvaluatorSuite) TestColumnEvalDecimal(c *C) {
+	var d types.MyDecimal
+	c.Assert(d.FromFloat64(12345.6789), IsNil)
+	s.testColumnColEval(c, newDecimalType, &d, nil)
+}
+
+func (s *testColumnEvaluatorSuite) TestColumnEvalString(c *C) {
+	s.testColumnColEval(c, varStringType, "Hello World", "", nil)
+}
+
+func (s *testColumnEvaluatorSuite) testColumnColEval(c *C, tp *types.FieldType, values ...interface{}) {
+	chk := chunk.NewChunkWithCapacity([]*types.FieldType{tp}, len(values))
 	inCol := chk.GetColumn(0)
-	inCol.AppendFloat64(123.456)
-	inCol.AppendNull()
-	outCol := chunk.NewColumn(int64Type, 2)
-	column := &Column{
-		RetType: float64Type,
-		Index:   0,
+	for _, value := range values {
+		columnAppendValue(inCol, tp, value)
 	}
+	outCol := chunk.NewColumn(tp, len(values))
+	column := &Column{RetType: tp, Index: 0}
 
-	err := column.ColEvalReal(s.ctx, chk, outCol)
-
+	err := columnColEvalValue(column, s.ctx, chk, outCol)
 	c.Assert(err, IsNil)
-	c.Assert(outCol.GetLength(), Equals, 2)
-	c.Assert(outCol.IsNull(0), IsFalse)
-	c.Assert(outCol.GetFloat64(0), Equals, 123.456)
-	c.Assert(outCol.IsNull(1), IsTrue)
+	c.Assert(inCol.GetLength(), Equals, outCol.GetLength())
+
+	inColData := reflect.ValueOf(*inCol).FieldByName("data").Bytes()
+	outColData := reflect.ValueOf(*outCol).FieldByName("data").Bytes()
+	c.Assert(inColData, DeepEquals, outColData)
+}
+
+func columnAppendValue(col *chunk.Column, tp *types.FieldType, value interface{}) {
+	if value == nil {
+		col.AppendNull()
+	} else {
+		switch tp {
+		case int64Type:
+			col.AppendInt64(value.(int64))
+		case float64Type:
+			col.AppendFloat64(value.(float64))
+		case newDecimalType:
+			col.AppendMyDecimal(value.(*types.MyDecimal))
+		case varStringType:
+			col.AppendString(value.(string))
+		default:
+			panic("invalid type")
+		}
+	}
+}
+
+func columnColEvalValue(col *Column, ctx sessionctx.Context, chk *chunk.Chunk, out *chunk.Column) error {
+	switch col.RetType {
+	case int64Type:
+		return col.ColEvalInt(ctx, chk, out)
+	case float64Type:
+		return col.ColEvalReal(ctx, chk, out)
+	case newDecimalType:
+		return col.ColEvalDecimal(ctx, chk, out)
+	case varStringType:
+		return col.ColEvalString(ctx, chk, out)
+	default:
+		return errors.New("invalid type")
+	}
 }
 
 func (s *testColumnEvaluatorSuite) TestInt64Plus(c *C) {

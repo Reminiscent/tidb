@@ -507,7 +507,7 @@ func (c *Chunk) AppendDuration(colIdx int, dur types.Duration) {
 
 // AppendMyDecimal appends a MyDecimal value to the chunk.
 func (c *Chunk) AppendMyDecimal(colIdx int, dec *types.MyDecimal) {
-	c.columns[colIdx].appendMyDecimal(dec)
+	c.columns[colIdx].AppendMyDecimal(dec)
 }
 
 // AppendEnum appends an Enum value to the chunk.

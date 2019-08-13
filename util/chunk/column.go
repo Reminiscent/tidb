@@ -371,7 +371,8 @@ func (c *Column) appendDuration(dur types.Duration) {
 	c.AppendInt64(int64(dur.Duration))
 }
 
-func (c *Column) appendMyDecimal(dec *types.MyDecimal) {
+// AppendMyDecimal appends a MyDecimal at the end of this column
+func (c *Column) AppendMyDecimal(dec *types.MyDecimal) {
 	*(*types.MyDecimal)(unsafe.Pointer(&c.elemBuf[0])) = *dec
 	c.finishAppendFixed()
 }
