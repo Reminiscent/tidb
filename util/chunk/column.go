@@ -178,14 +178,19 @@ func (c *Column) IsNull(rowIdx int) bool {
 
 // SetNull set item at specified index to `isNull`
 func (c *Column) SetNull(rowIdx int, isNull bool) {
-	nullByte := c.nullBitmap[rowIdx/8]
-	pos := nullByte & (1 << (uint(rowIdx) & 7))
-	if isNull {
-		c.nullBitmap[rowIdx/8] |= 1 << pos
-	} else {
-		c.nullBitmap[rowIdx/8] &= byte(255) ^ (1 << pos)
-	}
+	byteIdx := rowIdx >> 3
+	mask := byte(1 << (uint(rowIdx) & 7))
+	originIsNull := (c.nullBitmap[byteIdx] & mask) == 0
 
+	if originIsNull != isNull {
+		if isNull {
+			c.nullBitmap[byteIdx] &^= mask
+			c.nullCount++
+		} else {
+			c.nullBitmap[byteIdx] |= mask
+			c.nullCount--
+		}
+	}
 }
 
 func (c *Column) copyConstruct() *Column {
