@@ -98,6 +98,13 @@ func (c *Column) GetBytes(index int) []byte {
 	return c.data[start:end]
 }
 
+// GetString get a string from the column at specified index
+func (c *Column) GetString(index int) string {
+	start, end := c.offsets[index], c.offsets[index+1]
+	str := string(hack.String(c.data[start:end]))
+	return str
+}
+
 // GetTime get a time from the column at specified index
 func (c *Column) GetTime(index int) types.Time {
 	return readTime(c.data[index*16:])
