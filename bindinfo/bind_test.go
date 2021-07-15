@@ -1838,6 +1838,23 @@ func (s *testSuite) TestSPMHitInfo(c *C) {
 	tk.MustExec("drop global binding for SELECT * from t1,t2 where t1.id = t2.id")
 }
 
+func (s *testSuite) TestBindingLastUpdateTime(c *C) {
+	tk := testkit.NewTestKit(c, s.store)
+	s.cleanBindingEnv(tk)
+	tk.MustExec("use test")
+	tk.MustExec("drop table if exists t0;")
+	tk.MustExec("create table t0(a int, key(a));")
+
+	tk.MustQuery(`select @@binding_last_update_time;`).Check(testkit.Rows("0"))
+	tk.MustExec("create global binding for select * from t0 using select * from t0 use index(a);")
+	rows := tk.MustQuery("show global bindings").Rows()
+	c.Assert(len(rows), Equals, 1)
+	update_time := rows[0][5]
+	rows1 := tk.MustQuery("select @@binding_last_update_time;").Rows()
+	update_time1 := rows1[0][0]
+	c.Assert(update_time, Equals, update_time1)
+}
+
 func (s *testSuite) TestIssue19836(c *C) {
 	tk := testkit.NewTestKit(c, s.store)
 	s.cleanBindingEnv(tk)

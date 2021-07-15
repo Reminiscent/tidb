@@ -777,6 +777,9 @@ type SessionVars struct {
 	// PrevFoundInBinding indicates whether the last execution plan is matched with the hints in the binding.
 	PrevFoundInBinding bool
 
+	// LastUpdateTimeInBinding used to record the last update time corresponding to the SQL Bind cache.
+	LastUpdateTimeInBinding string
+
 	// OptimizerUseInvisibleIndexes indicates whether optimizer can use invisible index
 	OptimizerUseInvisibleIndexes bool
 
@@ -1056,6 +1059,7 @@ func NewSessionVars() *SessionVars {
 		FoundInPlanCache:            DefTiDBFoundInPlanCache,
 		PrevFoundInBinding:          DefTiDBFoundInBinding,
 		FoundInBinding:              DefTiDBFoundInBinding,
+		LastUpdateTimeInBinding:     DefTiDBLastUpdateTimeInBinding,
 		SelectLimit:                 math.MaxUint64,
 		AllowAutoRandExplicitInsert: DefTiDBAllowAutoRandExplicitInsert,
 		EnableClusteredIndex:        DefTiDBEnableClusteredIndex,

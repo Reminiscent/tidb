@@ -1572,6 +1572,12 @@ var defaultSysVars = []*SysVar{
 	}, GetSession: func(s *SessionVars) (string, error) {
 		return BoolToOnOff(s.PrevFoundInBinding), nil
 	}},
+	{Scope: ScopeSession, Name: TiDBLastUpdateTimeInBinding, Value: DefTiDBLastUpdateTimeInBinding, Type: TypeBool, ReadOnly: true, skipInit: true, SetSession: func(s *SessionVars, val string) error {
+		s.LastUpdateTimeInBinding = val
+		return nil
+	}, GetSession: func(s *SessionVars) (string, error) {
+		return s.LastUpdateTimeInBinding, nil
+	}},
 	{Scope: ScopeSession, Name: TiDBEnableCollectExecutionInfo, Value: BoolToOnOff(DefTiDBEnableCollectExecutionInfo), skipInit: true, Type: TypeBool, SetSession: func(s *SessionVars, val string) error {
 		oldConfig := config.GetGlobalConfig()
 		newValue := TiDBOptOn(val)

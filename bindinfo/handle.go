@@ -173,7 +173,14 @@ func (h *BindHandle) Update(fullLoad bool) (err error) {
 		}
 		updateMetrics(metrics.ScopeGlobal, oldRecord, newCache.getBindRecord(hash, meta.OriginalSQL, meta.Db), true)
 	}
+	setLastUpdateTimeInBinding(h.sctx, lastUpdateTime.String())
 	return nil
+}
+
+func setLastUpdateTimeInBinding(sctx sessionctx.Context, last_update_time string) error {
+	vars := sctx.GetSessionVars()
+	err := vars.SetSystemVar(variable.TiDBLastUpdateTimeInBinding, last_update_time)
+	return err
 }
 
 // CreateBindRecord creates a BindRecord to the storage and the cache.

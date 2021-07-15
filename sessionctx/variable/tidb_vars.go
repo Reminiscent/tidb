@@ -205,6 +205,9 @@ const (
 	// TiDBFoundInBinding indicates whether the last statement was matched with the hints in the binding.
 	TiDBFoundInBinding = "last_plan_from_binding"
 
+	// TiDBLastUpdateTimeInBinding used to record the last update time corresponding to the SQL Bind cache.
+	TiDBLastUpdateTimeInBinding = "binding_last_update_time"
+
 	// TiDBAllowAutoRandExplicitInsert indicates whether explicit insertion on auto_random column is allowed.
 	TiDBAllowAutoRandExplicitInsert = "allow_auto_random_explicit_insert"
 
@@ -694,6 +697,7 @@ const (
 	DefTiDBMetricSchemaRangeDuration   = 60 // 60s
 	DefTiDBFoundInPlanCache            = false
 	DefTiDBFoundInBinding              = false
+	DefTiDBLastUpdateTimeInBinding     = ""
 	DefTiDBEnableCollectExecutionInfo  = true
 	DefTiDBAllowAutoRandExplicitInsert = false
 	DefTiDBEnableClusteredIndex        = ClusteredIndexDefModeIntOnly
