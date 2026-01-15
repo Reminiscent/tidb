@@ -181,7 +181,19 @@ func foldConstant(ctx BuildContext, expr Expression) (Expression, bool) {
 		for i := range args {
 			switch x := args[i].(type) {
 			case *Constant:
-				isDeferredConst = isDeferredConst || x.DeferredExpr != nil || x.ParamMarker != nil
+				isMutableConst := x.DeferredExpr != nil || x.ParamMarker != nil
+				isDeferredConst = isDeferredConst || isMutableConst
+				// In null-rejected check, we should not fold with `ParamMarker` / `DeferredExpr` when plan-cache is enabled.
+				// Otherwise the folding result may depend on runtime parameter values and lead to a wrong cached plan
+				// (e.g. outer-join simplification).
+				//
+				// Treat these constants as non-constant here, so that `foldConstant` can only fold to a safe constant
+				// (NULL/FALSE) via the `hasNullArg && ctx.IsInNullRejectCheck()` fast path, which is parameter independent.
+				if ctx.IsInNullRejectCheck() && ctx.IsUseCache() && isMutableConst {
+					allConstArg = false
+					argIsConst[i] = false
+					continue
+				}
 				argIsConst[i] = true
 				hasNullArg = hasNullArg || x.Value.IsNull()
 			default:
