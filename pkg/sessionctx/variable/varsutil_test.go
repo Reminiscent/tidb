@@ -83,6 +83,7 @@ func TestNewSessionVars(t *testing.T) {
 	require.Equal(t, int64(vardef.DefTiDBMemQuotaApplyCache), vars.MemQuotaApplyCache)
 	require.Equal(t, vardef.DefOptWriteRowID, vars.AllowWriteRowID)
 	require.Equal(t, vardef.DefTiDBOptJoinReorderThreshold, vars.TiDBOptJoinReorderThreshold)
+	require.Equal(t, vardef.DefTiDBOptGreedyJoinBestPair, vars.TiDBOptGreedyJoinBestPair)
 	require.Equal(t, vardef.DefTiDBUseFastAnalyze, vars.EnableFastAnalyze)
 	require.Equal(t, vardef.DefTiDBFoundInPlanCache, vars.FoundInPlanCache)
 	require.Equal(t, vardef.DefTiDBFoundInBinding, vars.FoundInBinding)
@@ -263,6 +264,14 @@ func TestVarsutil(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "5", val)
 	require.Equal(t, 5, v.TiDBOptJoinReorderThreshold)
+
+	require.Equal(t, vardef.DefTiDBOptGreedyJoinBestPair, v.TiDBOptGreedyJoinBestPair)
+	err = v.SetSystemVar(vardef.TiDBOptGreedyJoinBestPair, "ON")
+	require.NoError(t, err)
+	val, err = v.GetSessionOrGlobalSystemVar(context.Background(), vardef.TiDBOptGreedyJoinBestPair)
+	require.NoError(t, err)
+	require.Equal(t, "ON", val)
+	require.Equal(t, true, v.TiDBOptGreedyJoinBestPair)
 
 	err = v.SetSystemVar(vardef.TiDBLowResolutionTSO, "1")
 	require.NoError(t, err)

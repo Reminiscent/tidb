@@ -660,6 +660,12 @@ const (
 	// we'll choose a rather time-consuming algorithm to calculate the join order.
 	TiDBOptJoinReorderThreshold = "tidb_opt_join_reorder_threshold"
 
+	// TiDBOptGreedyJoinBestPair indicates whether to pick the initial
+	// join tree by enumerating all pairwise joins and selecting the best one in the
+	// greedy join reorder algorithm.
+	// Default is off to keep the historical behavior (start from the smallest node).
+	TiDBOptGreedyJoinBestPair = "tidb_opt_greedy_join_best_pair"
+
 	// TiDBSlowQueryFile indicates which slow query log file for SLOW_QUERY table to parse.
 	TiDBSlowQueryFile = "tidb_slow_query_file"
 
@@ -1515,6 +1521,7 @@ const (
 	DefEnableStrictDoubleTypeCheck          = true
 	DefEnableVectorizedExpression           = true
 	DefTiDBOptJoinReorderThreshold          = 0
+	DefTiDBOptGreedyJoinBestPair            = false
 	DefTiDBDDLSlowOprThreshold              = 300
 	DefTiDBUseFastAnalyze                   = false
 	DefTiDBSkipIsolationLevelCheck          = false

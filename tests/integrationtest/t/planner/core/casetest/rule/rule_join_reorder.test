@@ -519,3 +519,24 @@ explain format='plan_tree' select /*+ leading(t1, t3) */ t1.a, (select min(t2.a)
 explain format='plan_tree' select /*+ leading(t2@sel_2, t1) */ t1.a, (select min(t2.a) from t2) from t1 left join t3 on t1.a = t3.a;
 explain format='plan_tree' select /*+ leading(t3, t2@sel_2) */ t1.a, (select min(t2.a) from t2) from t1 right join t3 on t1.a = t3.a;
 --disable_warnings
+
+# TestGreedyJoinBestPair
+set tidb_cost_model_version=2;
+set @@tidb_enable_outer_join_reorder=on;
+drop table if exists gbp_t1, gbp_t2, gbp_t3, gbp_nums;
+create table gbp_t1(col1 int primary key, pad int);
+create table gbp_t2(col2 int, pad int);
+create table gbp_t3(col1 int primary key, pad int);
+create table gbp_nums(n int primary key);
+insert into gbp_nums values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+insert into gbp_t1
+select a.n*100+b.n*10+c.n+1 as col1, a.n*100+b.n*10+c.n+1 as pad
+from gbp_nums a, gbp_nums b, gbp_nums c;
+insert into gbp_t2 values (1, 1);
+insert into gbp_t3 values (1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9),(10,10);
+analyze table gbp_t1, gbp_t2, gbp_t3;
+set @@tidb_opt_greedy_join_best_pair=0;
+explain format='plan_tree' select * from (gbp_t1 left join gbp_t2 on gbp_t1.col1 = gbp_t2.col2) join gbp_t3 on gbp_t3.col1 = gbp_t1.col1;
+set @@tidb_opt_greedy_join_best_pair=1;
+explain format='plan_tree' select * from (gbp_t1 left join gbp_t2 on gbp_t1.col1 = gbp_t2.col2) join gbp_t3 on gbp_t3.col1 = gbp_t1.col1;
+set @@tidb_opt_greedy_join_best_pair=default;

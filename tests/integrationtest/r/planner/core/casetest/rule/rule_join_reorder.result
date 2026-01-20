@@ -7474,3 +7474,43 @@ ScalarSubQuery	root		Output: ScalarQueryCol#14
 Level	Code	Message
 Warning	1815	There are no matching table names for (t2) in optimizer hint /*+ LEADING(t3, t2) */. Maybe you can use the table alias name
 Warning	1815	leading hint is inapplicable, check if the leading hint table is valid
+set tidb_cost_model_version=2;
+set @@tidb_enable_outer_join_reorder=on;
+drop table if exists gbp_t1, gbp_t2, gbp_t3, gbp_nums;
+create table gbp_t1(col1 int primary key, pad int);
+create table gbp_t2(col2 int, pad int);
+create table gbp_t3(col1 int primary key, pad int);
+create table gbp_nums(n int primary key);
+insert into gbp_nums values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9);
+insert into gbp_t1
+select a.n*100+b.n*10+c.n+1 as col1, a.n*100+b.n*10+c.n+1 as pad
+from gbp_nums a, gbp_nums b, gbp_nums c;
+insert into gbp_t2 values (1, 1);
+insert into gbp_t3 values (1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9),(10,10);
+analyze table gbp_t1, gbp_t2, gbp_t3;
+set @@tidb_opt_greedy_join_best_pair=0;
+explain format='plan_tree' select * from (gbp_t1 left join gbp_t2 on gbp_t1.col1 = gbp_t2.col2) join gbp_t3 on gbp_t3.col1 = gbp_t1.col1;
+id	task	access object	operator info
+HashJoin	root		inner join, equal:[eq(planner__core__casetest__rule__rule_join_reorder.gbp_t1.col1, planner__core__casetest__rule__rule_join_reorder.gbp_t3.col1)]
+├─TableReader(Build)	root		data:TableFullScan
+│ └─TableFullScan	cop[tikv]	table:gbp_t3	keep order:false
+└─HashJoin(Probe)	root		left outer join, left side:TableReader, equal:[eq(planner__core__casetest__rule__rule_join_reorder.gbp_t1.col1, planner__core__casetest__rule__rule_join_reorder.gbp_t2.col2)]
+  ├─TableReader(Build)	root		data:Selection
+  │ └─Selection	cop[tikv]		not(isnull(planner__core__casetest__rule__rule_join_reorder.gbp_t2.col2))
+  │   └─TableFullScan	cop[tikv]	table:gbp_t2	keep order:false
+  └─TableReader(Probe)	root		data:TableFullScan
+    └─TableFullScan	cop[tikv]	table:gbp_t1	keep order:false
+set @@tidb_opt_greedy_join_best_pair=1;
+explain format='plan_tree' select * from (gbp_t1 left join gbp_t2 on gbp_t1.col1 = gbp_t2.col2) join gbp_t3 on gbp_t3.col1 = gbp_t1.col1;
+id	task	access object	operator info
+Projection	root		planner__core__casetest__rule__rule_join_reorder.gbp_t1.col1, planner__core__casetest__rule__rule_join_reorder.gbp_t1.pad, planner__core__casetest__rule__rule_join_reorder.gbp_t2.col2, planner__core__casetest__rule__rule_join_reorder.gbp_t2.pad, planner__core__casetest__rule__rule_join_reorder.gbp_t3.col1, planner__core__casetest__rule__rule_join_reorder.gbp_t3.pad
+└─HashJoin	root		left outer join, left side:IndexJoin, equal:[eq(planner__core__casetest__rule__rule_join_reorder.gbp_t1.col1, planner__core__casetest__rule__rule_join_reorder.gbp_t2.col2)]
+  ├─TableReader(Build)	root		data:Selection
+  │ └─Selection	cop[tikv]		not(isnull(planner__core__casetest__rule__rule_join_reorder.gbp_t2.col2))
+  │   └─TableFullScan	cop[tikv]	table:gbp_t2	keep order:false
+  └─IndexJoin(Probe)	root		inner join, inner:TableReader, outer key:planner__core__casetest__rule__rule_join_reorder.gbp_t3.col1, inner key:planner__core__casetest__rule__rule_join_reorder.gbp_t1.col1, equal cond:eq(planner__core__casetest__rule__rule_join_reorder.gbp_t3.col1, planner__core__casetest__rule__rule_join_reorder.gbp_t1.col1)
+    ├─TableReader(Build)	root		data:TableFullScan
+    │ └─TableFullScan	cop[tikv]	table:gbp_t3	keep order:false
+    └─TableReader(Probe)	root		data:TableRangeScan
+      └─TableRangeScan	cop[tikv]	table:gbp_t1	range: decided by [planner__core__casetest__rule__rule_join_reorder.gbp_t3.col1], keep order:false
+set @@tidb_opt_greedy_join_best_pair=default;

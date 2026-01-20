@@ -30,6 +30,35 @@ type joinReorderGreedySolver struct {
 	*baseSingleGroupJoinOrderSolver
 }
 
+func isBetterJoinCandidate(curCost float64, curIsCartesian bool, bestCost float64, bestIsCartesian bool, cartesianThreshold float64) bool {
+	// Cartesian join is risky but skipping it brutally may lead to bad join orders, see #63290.
+	// To trade-off, we use a ratio as penalty to control the preference.
+	// Only select a cartesian join when cost(cartesian)*ratio < cost(non-cartesian).
+	if !bestIsCartesian && curIsCartesian {
+		return curCost*cartesianThreshold < bestCost
+	}
+	if bestIsCartesian && !curIsCartesian {
+		return curCost < bestCost*cartesianThreshold
+	}
+	return curCost < bestCost
+}
+
+func (s *joinReorderGreedySolver) makeJoinAndCalcCost(leftNode *jrNode, rightNode *jrNode, cartesianThreshold float64) (join base.LogicalPlan, remainOthers []expression.Expression, isCartesian bool, cost float64, ok bool, err error) {
+	join, remainOthers, isCartesian = s.checkConnectionAndMakeJoin(leftNode.p, rightNode.p)
+	if isCartesian {
+		s.ctx.GetSessionVars().RecordRelevantOptVar(vardef.TiDBOptCartesianJoinOrderThreshold)
+	}
+	if join == nil || // can't yield a valid join
+		(cartesianThreshold <= 0 && isCartesian) { // disable cartesian join
+		return nil, nil, isCartesian, 0, false, nil
+	}
+	_, _, err = join.RecursiveDeriveStats(nil)
+	if err != nil {
+		return nil, nil, isCartesian, 0, false, err
+	}
+	return join, remainOthers, isCartesian, s.calcJoinCumCost(join, leftNode, rightNode), true, nil
+}
+
 // solve reorders the join nodes in the group based on a greedy algorithm.
 //
 // For each node having a join equal condition with the current join tree in
@@ -95,9 +124,73 @@ func (s *joinReorderGreedySolver) solve(joinNodePlans []base.LogicalPlan) (base.
 	return s.makeBushyJoin(cartesianGroup), nil
 }
 
+func (s *joinReorderGreedySolver) initConnectedJoinTree() (*jrNode, error) {
+	if len(s.curJoinGroup) == 0 {
+		return nil, nil
+	}
+	// The leadingJoinGroup must join first.
+	if s.leadingJoinGroup != nil && s.curJoinGroup[0].p == s.leadingJoinGroup {
+		curJoinTree := s.curJoinGroup[0]
+		s.curJoinGroup = s.curJoinGroup[1:]
+		return curJoinTree, nil
+	}
+
+	if !s.ctx.GetSessionVars().TiDBOptGreedyJoinBestPair || len(s.curJoinGroup) < 2 {
+		curJoinTree := s.curJoinGroup[0]
+		s.curJoinGroup = s.curJoinGroup[1:]
+		return curJoinTree, nil
+	}
+	s.ctx.GetSessionVars().RecordRelevantOptVar(vardef.TiDBOptGreedyJoinBestPair)
+
+	cartesianThreshold := s.ctx.GetSessionVars().CartesianJoinOrderThreshold
+	bestCost := math.MaxFloat64
+	bestLeftIdx, bestRightIdx, bestIsCartesian := -1, -1, false
+	var bestJoin base.LogicalPlan
+	var finalRemainOthers []expression.Expression
+
+	for i := 0; i < len(s.curJoinGroup)-1; i++ {
+		for j := i + 1; j < len(s.curJoinGroup); j++ {
+			leftNode := s.curJoinGroup[i]
+			rightNode := s.curJoinGroup[j]
+			newJoin, remainOthers, isCartesian, curCost, ok, err := s.makeJoinAndCalcCost(leftNode, rightNode, cartesianThreshold)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				continue
+			}
+
+			if isBetterJoinCandidate(curCost, isCartesian, bestCost, bestIsCartesian, cartesianThreshold) {
+				bestCost = curCost
+				bestJoin = newJoin
+				bestLeftIdx = i
+				bestRightIdx = j
+				finalRemainOthers = remainOthers
+				bestIsCartesian = isCartesian
+			}
+		}
+	}
+	if bestJoin == nil {
+		curJoinTree := s.curJoinGroup[0]
+		s.curJoinGroup = s.curJoinGroup[1:]
+		return curJoinTree, nil
+	}
+
+	// Remove two nodes used to build the initial join tree.
+	s.curJoinGroup = slices.Delete(s.curJoinGroup, bestRightIdx, bestRightIdx+1)
+	s.curJoinGroup = slices.Delete(s.curJoinGroup, bestLeftIdx, bestLeftIdx+1)
+	s.otherConds = finalRemainOthers
+	return &jrNode{
+		p:       bestJoin,
+		cumCost: bestCost,
+	}, nil
+}
+
 func (s *joinReorderGreedySolver) constructConnectedJoinTree() (*jrNode, error) {
-	curJoinTree := s.curJoinGroup[0]
-	s.curJoinGroup = s.curJoinGroup[1:]
+	curJoinTree, err := s.initConnectedJoinTree()
+	if err != nil {
+		return nil, err
+	}
 	cartesianThreshold := s.ctx.GetSessionVars().CartesianJoinOrderThreshold
 	for {
 		bestCost := math.MaxFloat64
@@ -105,36 +198,18 @@ func (s *joinReorderGreedySolver) constructConnectedJoinTree() (*jrNode, error) 
 		var finalRemainOthers, remainOthersOfWhateverValidOne []expression.Expression
 		var bestJoin, whateverValidOne base.LogicalPlan
 		for i, node := range s.curJoinGroup {
-			newJoin, remainOthers, isCartesian := s.checkConnectionAndMakeJoin(curJoinTree.p, node.p)
-			if isCartesian {
-				s.ctx.GetSessionVars().RecordRelevantOptVar(vardef.TiDBOptCartesianJoinOrderThreshold)
-			}
-			if newJoin == nil || // can't yield a valid join
-				(cartesianThreshold <= 0 && isCartesian) { // disable cartesian join
-				continue
-			}
-			_, _, err := newJoin.RecursiveDeriveStats(nil)
+			newJoin, remainOthers, isCartesian, curCost, ok, err := s.makeJoinAndCalcCost(curJoinTree, node, cartesianThreshold)
 			if err != nil {
 				return nil, err
+			}
+			if !ok {
+				continue
 			}
 			whateverValidOne = newJoin
 			whateverValidOneIdx = i
 			remainOthersOfWhateverValidOne = remainOthers
-			curCost := s.calcJoinCumCost(newJoin, curJoinTree, node)
 
-			// Cartesian join is risky but skipping it brutally may lead to bad join orders, see #63290.
-			// To trade-off, we use a ratio as penalty to control the preference.
-			// Only select a cartesian join when cost(cartesian)*ratio < cost(non-cartesian).
-			curIsBetter := false
-			if !bestIsCartesian && isCartesian {
-				curIsBetter = curCost*cartesianThreshold < bestCost
-			} else if bestIsCartesian && !isCartesian {
-				curIsBetter = curCost < bestCost*cartesianThreshold
-			} else {
-				curIsBetter = curCost < bestCost
-			}
-
-			if curIsBetter {
+			if isBetterJoinCandidate(curCost, isCartesian, bestCost, bestIsCartesian, cartesianThreshold) {
 				bestCost = curCost
 				bestJoin = newJoin
 				bestIdx = i
