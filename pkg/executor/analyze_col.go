@@ -281,11 +281,19 @@ func (e *AnalyzeColumnsExec) buildStats(ranges []*ranger.Range, needExtStats boo
 		collectors[i].CMSketch.CalcDefaultValForAnalyze(uint64(hg.NDV))
 		cms = append(cms, collectors[i].CMSketch)
 		fms = append(fms, collectors[i].FMSketch)
+		if !needExtStats {
+			collectors[i].Destroy()
+			collectors[i] = nil
+		}
 	}
 	if needExtStats {
 		extStats, err = statistics.BuildExtendedStats(e.ctx, e.TableID.GetStatisticsID(), e.colsInfo, collectors)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
+		}
+		for i := range collectors {
+			collectors[i].Destroy()
+			collectors[i] = nil
 		}
 	}
 	if handleHist != nil {

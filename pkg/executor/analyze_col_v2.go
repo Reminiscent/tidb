@@ -350,13 +350,25 @@ func (e *AnalyzeColumnsExecV2) buildSamplingStats(
 	}
 	e.samplingBuilderWg = newNotifyErrorWaitGroupWrapper(gp, buildResultChan)
 	sampleCollectors := make([]*statistics.SampleCollector, len(e.colsInfo))
+	releaseSampleCollectors := func() {
+		totalSampleCollectorSize := int64(0)
+		for i, sampleCollector := range sampleCollectors {
+			if sampleCollector == nil {
+				continue
+			}
+			totalSampleCollectorSize += sampleCollector.MemSize
+			sampleCollector.Destroy()
+			sampleCollectors[i] = nil
+		}
+		e.memTracker.Release(totalSampleCollectorSize)
+	}
 	exitCh := make(chan struct{})
 	e.samplingBuilderWg.Add(samplingStatsConcurrency)
 
 	// Start workers to build stats.
 	for i := 0; i < samplingStatsConcurrency; i++ {
 		e.samplingBuilderWg.Run(func() {
-			e.subBuildWorker(buildResultChan, buildTaskChan, hists, topns, sampleCollectors, exitCh)
+			e.subBuildWorker(buildResultChan, buildTaskChan, hists, topns, sampleCollectors, needExtStats, exitCh)
 		})
 	}
 	// Generate tasks for building stats.
@@ -410,15 +422,7 @@ func (e *AnalyzeColumnsExecV2) buildSamplingStats(
 			continue
 		}
 	}
-	defer func() {
-		totalSampleCollectorSize := int64(0)
-		for _, sampleCollector := range sampleCollectors {
-			if sampleCollector != nil {
-				totalSampleCollectorSize += sampleCollector.MemSize
-			}
-		}
-		e.memTracker.Release(totalSampleCollectorSize)
-	}()
+	defer releaseSampleCollectors()
 	if err != nil {
 		return 0, nil, nil, nil, nil, err
 	}
@@ -429,6 +433,7 @@ func (e *AnalyzeColumnsExecV2) buildSamplingStats(
 		if err != nil {
 			return 0, nil, nil, nil, nil, err
 		}
+		releaseSampleCollectors()
 	}
 
 	return
@@ -669,7 +674,15 @@ func (e *AnalyzeColumnsExecV2) subMergeWorker(resultCh chan<- *samplingMergeResu
 	resultCh <- &samplingMergeResult{collector: retCollector}
 }
 
-func (e *AnalyzeColumnsExecV2) subBuildWorker(resultCh chan error, taskCh chan *samplingBuildTask, hists []*statistics.Histogram, topns []*statistics.TopN, collectors []*statistics.SampleCollector, exitCh chan struct{}) {
+func (e *AnalyzeColumnsExecV2) subBuildWorker(
+	resultCh chan error,
+	taskCh chan *samplingBuildTask,
+	hists []*statistics.Histogram,
+	topns []*statistics.TopN,
+	collectors []*statistics.SampleCollector,
+	needExtStats bool,
+	exitCh chan struct{},
+) {
 	defer func() {
 		if r := recover(); r != nil {
 			logutil.BgLogger().Error("analyze worker panicked", zap.Any("recover", r), zap.Stack("stack"))
@@ -803,13 +816,19 @@ workLoop:
 					MemSize:   collectorMemSize,
 				}
 			}
-			if task.isColumn {
+			if task.isColumn && needExtStats {
 				collectors[task.slicePos] = collector
 			}
 			releaseCollectorMemory := func() {
-				if !task.isColumn {
-					e.memTracker.Release(collector.MemSize)
+				if task.isColumn && needExtStats {
+					return
 				}
+				collectorMemSize := collector.MemSize
+				failpoint.InjectCall("analyzeSamplingBuildBeforeReleaseCollectorMemory", collectorMemSize, e.memTracker.BytesConsumed())
+				intest.Assert(collectorMemSize >= 0, "collector memory size should be non-negative")
+				e.memTracker.Release(collectorMemSize)
+				collector.Destroy()
+				failpoint.InjectCall("analyzeSamplingBuildAfterReleaseCollectorMemory", collectorMemSize, e.memTracker.BytesConsumed())
 			}
 			hist, topn, err := statistics.BuildHistAndTopN(e.ctx, int(e.opts[ast.AnalyzeOptNumBuckets]), int(e.opts[ast.AnalyzeOptNumTopN]), task.id, collector, task.tp, task.isColumn, e.memTracker, e.ctx.GetSessionVars().EnableExtendedStats)
 			if err != nil {
